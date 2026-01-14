@@ -94,6 +94,7 @@ export default function TasksScreen() {
           Tasks
         </ThemedText>
         <TouchableOpacity
+          testID="add-button"
           style={[styles.addButton, { backgroundColor: colors.tint }]}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.8}>
