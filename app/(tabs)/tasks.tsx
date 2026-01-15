@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FlatList,
   Modal,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -20,6 +21,7 @@ interface Task {
   id: string;
   description: string;
   completed: boolean;
+  deletedAt?: number;
 }
 
 export default function TasksScreen() {
@@ -27,6 +29,7 @@ export default function TasksScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const colorScheme = useColorScheme() ?? 'light';
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
   const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>('tasklist', 'default');
 
@@ -39,7 +42,8 @@ export default function TasksScreen() {
       const loadedTasks = await Promise.all(
         taskIds.map((id) => getStorageItem<Task>('task', id))
       );
-      setTasks(loadedTasks.filter((task): task is Task => task !== null));
+      // Filter out null tasks and deleted tasks
+      setTasks(loadedTasks.filter((task): task is Task => task !== null && !task.deletedAt));
     }
 
     loadTasks();
@@ -77,7 +81,40 @@ export default function TasksScreen() {
     );
   }, [tasks]);
 
+  const deleteTask = useCallback(async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    const updatedTask = { ...task, deletedAt: Date.now() };
+    await setStorageItem('task', id, updatedTask);
+
+    // Close the swipeable
+    swipeableRefs.current.get(id)?.close();
+
+    // Remove from local state
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  }, [tasks]);
+
+  const renderRightActions = (id: string) => (
+    <TouchableOpacity
+      testID={`delete-action-${id}`}
+      style={styles.deleteAction}
+      onPress={() => deleteTask(id)}>
+      <IconSymbol name="trash" size={24} color="#fff" />
+    </TouchableOpacity>
+  );
+
   const renderTask = ({ item }: { item: Task }) => (
+    <Swipeable
+      ref={(ref) => {
+        if (ref) {
+          swipeableRefs.current.set(item.id, ref);
+        } else {
+          swipeableRefs.current.delete(item.id);
+        }
+      }}
+      renderRightActions={() => renderRightActions(item.id)}
+      overshootRight={false}>
     <TouchableOpacity
       style={styles.taskItem}
       onPress={() => toggleTask(item.id)}
@@ -110,6 +147,7 @@ export default function TasksScreen() {
         {item.description}
       </ThemedText>
     </TouchableOpacity>
+    </Swipeable>
   );
 
   return (
@@ -241,6 +279,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(128, 128, 128, 0.3)',
+  },
+  deleteAction: {
+    backgroundColor: '#ff3b30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
   },
   checkbox: {
     width: 24,

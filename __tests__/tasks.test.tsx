@@ -378,4 +378,212 @@ describe('TasksScreen', () => {
     const secondTask = screen.getByText('Second task');
     expect(hasStyleProperty(secondTask.props.style, 'opacity', 0.5)).toBe(false);
   });
+
+  describe('delete functionality', () => {
+    it('removes task from list when delete action is pressed', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task to delete'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task to delete')).toBeTruthy();
+      });
+
+      // Get the task ID from the delete button testID
+      const deleteButton = screen.getByTestId(/delete-action-/);
+
+      // Press delete
+      await act(async () => {
+        fireEvent.press(deleteButton);
+      });
+
+      // Task should be removed from the list
+      await waitFor(() => {
+        expect(screen.queryByText('Task to delete')).toBeNull();
+      });
+
+      // Should show empty state
+      expect(screen.getByText(/No tasks yet/)).toBeTruthy();
+    });
+
+    it('sets deletedAt timestamp when task is deleted', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task with timestamp'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task with timestamp')).toBeTruthy();
+      });
+
+      // Get the delete button
+      const deleteButton = screen.getByTestId(/delete-action-/);
+      const taskId = deleteButton.props.testID.replace('delete-action-', '');
+
+      // Press delete
+      await act(async () => {
+        fireEvent.press(deleteButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Task with timestamp')).toBeNull();
+      });
+
+      // Check that the task in storage has deletedAt set
+      const storedTask = await AsyncStorage.getItem(`task-${taskId}`);
+      expect(storedTask).not.toBeNull();
+      const task = JSON.parse(storedTask!);
+      expect(task.deletedAt).toBeDefined();
+      expect(typeof task.deletedAt).toBe('number');
+    });
+
+    it('deleting one task does not affect other tasks', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add first task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Keep this task'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Keep this task')).toBeTruthy();
+      });
+
+      // Add second task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Delete this task'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete this task')).toBeTruthy();
+      });
+
+      // Find and press delete on the second task
+      const deleteButtons = screen.getAllByTestId(/delete-action-/);
+      const secondDeleteButton = deleteButtons[1];
+
+      await act(async () => {
+        fireEvent.press(secondDeleteButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Delete this task')).toBeNull();
+      });
+
+      // First task should still be there
+      expect(screen.getByText('Keep this task')).toBeTruthy();
+    });
+
+    it('does not show deleted tasks after reload', async () => {
+      const { unmount } = render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task to be deleted'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task to be deleted')).toBeTruthy();
+      });
+
+      // Delete the task
+      const deleteButton = screen.getByTestId(/delete-action-/);
+
+      await act(async () => {
+        fireEvent.press(deleteButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Task to be deleted')).toBeNull();
+      });
+
+      // Unmount and remount to simulate reload
+      unmount();
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Deleted task should not appear
+      expect(screen.queryByText('Task to be deleted')).toBeNull();
+      expect(screen.getByText(/No tasks yet/)).toBeTruthy();
+    });
+  });
 });

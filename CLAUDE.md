@@ -39,3 +39,4 @@ This is a React Native mobile app built with Expo (v54) and TypeScript, targetin
 - **State Management:** Local component state with React hooks. No global state library.
 - **Path Aliases:** Use `@/*` to import from project root (configured in tsconfig.json).
 - **Platform-specific code:** Use `.ios.tsx` suffix for iOS-specific component implementations.
+- **IconSymbol Mapping:** Icon symbols must be added to the mapping in components/ui/icon-symbol.tsx when used.
