@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, screen, waitFor, act } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import TasksScreen from '@/app/(tabs)/tasks';
@@ -74,12 +74,20 @@ describe('TasksScreen', () => {
       expect(screen.getByTestId('add-button')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'Buy groceries'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'Buy groceries'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Buy groceries')).toBeTruthy();
@@ -125,12 +133,20 @@ describe('TasksScreen', () => {
       expect(screen.getByTestId('add-button')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'Test task'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'Test task'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     // Wait for the task to appear (indicating async save completed)
     await waitFor(() => {
@@ -140,7 +156,9 @@ describe('TasksScreen', () => {
     // Modal should now be closed
     expect(screen.queryByText('New Task')).toBeNull();
 
-    fireEvent.press(screen.getByTestId('add-button'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
     expect(screen.getByPlaceholderText('What needs to be done?').props.value).toBe('');
   });
 
@@ -173,19 +191,28 @@ describe('TasksScreen', () => {
       expect(screen.getByTestId('add-button')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'Complete me'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'Complete me'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Complete me')).toBeTruthy();
     });
 
-    const taskText = screen.getByText('Complete me');
-    fireEvent.press(taskText);
+    await act(async () => {
+      fireEvent.press(screen.getByText('Complete me'));
+    });
 
     await waitFor(() => {
       const updatedTaskText = screen.getByText('Complete me');
@@ -200,19 +227,29 @@ describe('TasksScreen', () => {
       expect(screen.getByTestId('add-button')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'Toggle me'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'Toggle me'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Toggle me')).toBeTruthy();
     });
 
     // Complete the task
-    fireEvent.press(screen.getByText('Toggle me'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Toggle me'));
+    });
 
     await waitFor(() => {
       const completedTask = screen.getByText('Toggle me');
@@ -220,7 +257,9 @@ describe('TasksScreen', () => {
     });
 
     // Uncomplete the task
-    fireEvent.press(screen.getByText('Toggle me'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('Toggle me'));
+    });
 
     await waitFor(() => {
       const updatedTaskText = screen.getByText('Toggle me');
@@ -236,24 +275,40 @@ describe('TasksScreen', () => {
     });
 
     // Add first task
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'Task 1'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'Task 1'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Task 1')).toBeTruthy();
     });
 
     // Add second task
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'Task 2'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'Task 2'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Task 2')).toBeTruthy();
@@ -271,30 +326,48 @@ describe('TasksScreen', () => {
     });
 
     // Add two tasks
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'First task'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'First task'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('First task')).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId('add-button'));
-    fireEvent.changeText(
-      screen.getByPlaceholderText('What needs to be done?'),
-      'Second task'
-    );
-    fireEvent.press(screen.getByText('Add'));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('add-button'));
+    });
+
+    await act(async () => {
+      fireEvent.changeText(
+        screen.getByPlaceholderText('What needs to be done?'),
+        'Second task'
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByText('Add'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Second task')).toBeTruthy();
     });
 
     // Complete only the first task
-    fireEvent.press(screen.getByText('First task'));
+    await act(async () => {
+      fireEvent.press(screen.getByText('First task'));
+    });
 
     await waitFor(() => {
       const firstTask = screen.getByText('First task');
