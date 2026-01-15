@@ -4,7 +4,8 @@
 
 - [X] add tasks to a task list and mark them complete
 - [X] add a hook for saving data to local storage
-- [ ] use the useStorage hook to add saving and loading the task list
+- [X] use the useStorage hook to add saving and loading the task list
+- [ ] add swiping left to delete a task
 - [ ] set up and track daily behaviors
 - [ ] view daily goal behaviors
 - [ ] check off when a daily behavior has been completed
