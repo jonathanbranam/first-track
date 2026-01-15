@@ -47,7 +47,9 @@ describe('TasksScreen', () => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByTestId('add-button'));
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
 
       expect(screen.getByText('New Task')).toBeTruthy();
       expect(screen.getByPlaceholderText('What needs to be done?')).toBeTruthy();
@@ -60,10 +62,14 @@ describe('TasksScreen', () => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByTestId('add-button'));
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
       expect(screen.getByText('New Task')).toBeTruthy();
 
-      fireEvent.press(screen.getByText('Cancel'));
+      await act(async () => {
+        fireEvent.press(screen.getByText('Cancel'));
+      });
 
       await waitFor(() => {
         expect(screen.queryByText('New Task')).toBeNull();
@@ -113,18 +119,26 @@ describe('TasksScreen', () => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByTestId('add-button'));
-      fireEvent.changeText(
-        screen.getByPlaceholderText('What needs to be done?'),
-        'Some text'
-      );
-      fireEvent.press(screen.getByText('Cancel'));
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Some text'
+        );
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByText('Cancel'));
+      });
 
       await waitFor(() => {
         expect(screen.queryByText('New Task')).toBeNull();
       });
 
-      fireEvent.press(screen.getByTestId('add-button'));
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
       expect(screen.getByPlaceholderText('What needs to be done?').props.value).toBe('');
     });
   });
@@ -165,8 +179,12 @@ describe('TasksScreen', () => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByTestId('add-button'));
-      fireEvent.press(screen.getByText('Add'));
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
 
       // Modal should stay open
       expect(screen.getByText('New Task')).toBeTruthy();
@@ -179,12 +197,18 @@ describe('TasksScreen', () => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
       });
 
-      fireEvent.press(screen.getByTestId('add-button'));
-      fireEvent.changeText(
-        screen.getByPlaceholderText('What needs to be done?'),
-        '   '
-      );
-      fireEvent.press(screen.getByText('Add'));
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          '   '
+        );
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
 
       expect(screen.getByText('New Task')).toBeTruthy();
     });
