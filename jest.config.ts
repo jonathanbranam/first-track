@@ -187,7 +187,7 @@ const config: Config = {
 
   // These are from claude code
     transformIgnorePatterns: [
-      'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)'
+      'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|react-native-draggable-flatlist|react-native-swipeable-item)'
     ],
 
   // An array of regexp pattern strings that are matched against all modules before the module loader will automatically return a mock for them

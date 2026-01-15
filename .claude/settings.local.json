@@ -6,7 +6,9 @@
       "Bash(do echo \"=== Run $i ===\")",
       "Bash(done)",
       "Bash(do npm test:*)",
-      "Bash(do echo \"Run $i:\")"
+      "Bash(do echo \"Run $i:\")",
+      "Bash(npm search:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

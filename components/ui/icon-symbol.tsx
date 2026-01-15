@@ -22,6 +22,7 @@ const MAPPING = {
   'checkmark': 'check',
   'checklist': 'checklist',
   'trash': 'delete',
+  'line.3.horizontal': 'drag-handle',
 } as IconMapping;
 
 /**

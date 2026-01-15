@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  FlatList,
   Modal,
   Pressable,
   StyleSheet,
@@ -8,7 +7,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import DraggableFlatList, {
+  ScaleDecorator,
+  RenderItemParams,
+} from 'react-native-draggable-flatlist';
+import SwipeableItem, {
+  SwipeableItemImperativeRef,
+} from 'react-native-swipeable-item';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -29,7 +34,7 @@ export default function TasksScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const colorScheme = useColorScheme() ?? 'light';
-  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+  const swipeableRefs = useRef<Map<string, SwipeableItemImperativeRef>>(new Map());
 
   const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>('tasklist', 'default');
 
@@ -95,60 +100,91 @@ export default function TasksScreen() {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }, [tasks]);
 
-  const renderRightActions = (id: string) => (
-    <TouchableOpacity
-      testID={`delete-action-${id}`}
-      style={styles.deleteAction}
-      onPress={() => deleteTask(id)}>
-      <IconSymbol name="trash" size={24} color="#fff" />
-    </TouchableOpacity>
-  );
+  const handleDragEnd = useCallback(async ({ data }: { data: Task[] }) => {
+    setTasks(data);
+    const newTaskIds = data.map(task => task.id);
+    await saveTaskList(newTaskIds);
+  }, [saveTaskList]);
 
-  const renderTask = ({ item }: { item: Task }) => (
-    <Swipeable
-      ref={(ref) => {
-        if (ref) {
-          swipeableRefs.current.set(item.id, ref);
-        } else {
-          swipeableRefs.current.delete(item.id);
-        }
-      }}
-      renderRightActions={() => renderRightActions(item.id)}
-      overshootRight={false}>
-    <TouchableOpacity
-      style={styles.taskItem}
-      onPress={() => toggleTask(item.id)}
-      activeOpacity={0.7}>
-      <View
-        style={[
-          styles.checkbox,
-          {
-            borderColor: colors.icon,
-            backgroundColor: item.completed ? colors.tint : 'transparent',
-          },
+  const renderUnderlayRight = useCallback((item: Task) => (
+    <View style={styles.deleteUnderlay}>
+      <TouchableOpacity
+        testID={`delete-action-${item.id}`}
+        style={styles.deleteAction}
+        onPress={() => deleteTask(item.id)}>
+        <IconSymbol name="trash" size={24} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  ), [deleteTask]);
+
+  const renderTask = useCallback(({ item, drag, isActive }: RenderItemParams<Task>) => (
+    <ScaleDecorator activeScale={1.03}>
+      <SwipeableItem
+        item={item}
+        ref={(ref) => {
+          if (ref) {
+            swipeableRefs.current.set(item.id, ref);
+          } else {
+            swipeableRefs.current.delete(item.id);
+          }
+        }}
+        renderUnderlayRight={() => renderUnderlayRight(item)}
+        snapPointsRight={[80]}
+        overSwipe={20}
+        swipeEnabled={!isActive}>
+        <View style={[
+          styles.taskItem,
+          { backgroundColor: colors.background },
+          isActive && styles.taskItemActive,
         ]}>
-        {item.completed && (
-          <IconSymbol
-            name="checkmark"
-            size={14}
-            color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
-            weight="bold"
-          />
-        )}
-      </View>
-      <ThemedText
-        style={[
-          styles.taskText,
-          item.completed && {
-            opacity: 0.5,
-            textDecorationLine: 'line-through',
-          },
-        ]}>
-        {item.description}
-      </ThemedText>
-    </TouchableOpacity>
-    </Swipeable>
-  );
+          <TouchableOpacity
+            style={styles.taskContent}
+            onPress={() => toggleTask(item.id)}
+            activeOpacity={0.7}
+            disabled={isActive}>
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: colors.icon,
+                  backgroundColor: item.completed ? colors.tint : 'transparent',
+                },
+              ]}>
+              {item.completed && (
+                <IconSymbol
+                  name="checkmark"
+                  size={14}
+                  color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
+                  weight="bold"
+                />
+              )}
+            </View>
+            <ThemedText
+              style={[
+                styles.taskText,
+                item.completed && {
+                  opacity: 0.5,
+                  textDecorationLine: 'line-through',
+                },
+              ]}>
+              {item.description}
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID={`drag-handle-${item.id}`}
+            style={styles.dragHandle}
+            onPressIn={drag}
+            disabled={isActive}>
+            <IconSymbol
+              name="line.3.horizontal"
+              size={20}
+              color={colors.icon}
+            />
+          </TouchableOpacity>
+        </View>
+      </SwipeableItem>
+    </ScaleDecorator>
+  ), [colors, colorScheme, toggleTask, renderUnderlayRight]);
 
   return (
     <ThemedView style={styles.container}>
@@ -183,11 +219,12 @@ export default function TasksScreen() {
           </ThemedText>
         </ThemedView>
       ) : (
-        <FlatList
+        <DraggableFlatList
           data={tasks}
           renderItem={renderTask}
           keyExtractor={(item) => item.id}
-          extraData={colorScheme}
+          onDragEnd={handleDragEnd}
+          activationDistance={10}
           contentContainerStyle={styles.listContent}
         />
       )}
@@ -271,20 +308,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingRight: 20,
   },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
+    paddingLeft: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(128, 128, 128, 0.3)',
   },
-  deleteAction: {
+  taskItemActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  taskContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dragHandle: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteUnderlay: {
+    flex: 1,
     backgroundColor: '#ff3b30',
+    justifyContent: 'flex-end',
+    flexDirection: 'row',
+  },
+  deleteAction: {
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
+    height: '100%',
   },
   checkbox: {
     width: 24,
