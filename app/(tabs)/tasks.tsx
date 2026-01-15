@@ -11,9 +11,7 @@ import DraggableFlatList, {
   ScaleDecorator,
   RenderItemParams,
 } from 'react-native-draggable-flatlist';
-import SwipeableItem, {
-  SwipeableItemImperativeRef,
-} from 'react-native-swipeable-item';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -34,7 +32,7 @@ export default function TasksScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const colorScheme = useColorScheme() ?? 'light';
-  const swipeableRefs = useRef<Map<string, SwipeableItemImperativeRef>>(new Map());
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
   const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>('tasklist', 'default');
 
@@ -106,21 +104,18 @@ export default function TasksScreen() {
     await saveTaskList(newTaskIds);
   }, [saveTaskList]);
 
-  const renderUnderlayRight = useCallback((item: Task) => (
-    <View style={styles.deleteUnderlay}>
-      <TouchableOpacity
-        testID={`delete-action-${item.id}`}
-        style={styles.deleteAction}
-        onPress={() => deleteTask(item.id)}>
-        <IconSymbol name="trash" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
+  const renderRightActions = useCallback((id: string) => (
+    <TouchableOpacity
+      testID={`delete-action-${id}`}
+      style={styles.deleteAction}
+      onPress={() => deleteTask(id)}>
+      <IconSymbol name="trash" size={24} color="#fff" />
+    </TouchableOpacity>
   ), [deleteTask]);
 
   const renderTask = useCallback(({ item, drag, isActive }: RenderItemParams<Task>) => (
     <ScaleDecorator activeScale={1.03}>
-      <SwipeableItem
-        item={item}
+      <Swipeable
         ref={(ref) => {
           if (ref) {
             swipeableRefs.current.set(item.id, ref);
@@ -128,10 +123,9 @@ export default function TasksScreen() {
             swipeableRefs.current.delete(item.id);
           }
         }}
-        renderUnderlayRight={() => renderUnderlayRight(item)}
-        snapPointsRight={[80]}
-        overSwipe={20}
-        swipeEnabled={!isActive}>
+        renderRightActions={() => renderRightActions(item.id)}
+        overshootRight={false}
+        enabled={!isActive}>
         <View style={[
           styles.taskItem,
           { backgroundColor: colors.background },
@@ -182,9 +176,9 @@ export default function TasksScreen() {
             />
           </TouchableOpacity>
         </View>
-      </SwipeableItem>
+      </Swipeable>
     </ScaleDecorator>
-  ), [colors, colorScheme, toggleTask, renderUnderlayRight]);
+  ), [colors, colorScheme, toggleTask, renderRightActions]);
 
   return (
     <ThemedView style={styles.container}>
@@ -336,13 +330,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteUnderlay: {
-    flex: 1,
-    backgroundColor: '#ff3b30',
-    justifyContent: 'flex-end',
-    flexDirection: 'row',
-  },
   deleteAction: {
+    backgroundColor: '#ff3b30',
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
