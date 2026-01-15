@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import TasksScreen from '@/app/(tabs)/tasks';
 
@@ -16,20 +17,32 @@ const hasStyleProperty = (styles: any, property: string, value: any): boolean =>
 };
 
 describe('TasksScreen', () => {
-  it('renders the title', () => {
-    render(<TasksScreen />);
-
-    expect(screen.getByText('Tasks')).toBeTruthy();
+  beforeEach(async () => {
+    await AsyncStorage.clear();
   });
 
-  it('shows empty state when no tasks exist', () => {
+  it('renders the title', async () => {
     render(<TasksScreen />);
 
-    expect(screen.getByText(/No tasks yet/)).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText('Tasks')).toBeTruthy();
+    });
   });
 
-  it('opens modal when add button is pressed', () => {
+  it('shows empty state when no tasks exist', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/No tasks yet/)).toBeTruthy();
+    });
+  });
+
+  it('opens modal when add button is pressed', async () => {
+    render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByTestId('add-button'));
 
@@ -39,6 +52,10 @@ describe('TasksScreen', () => {
 
   it('closes modal when Cancel is pressed', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByTestId('add-button'));
     expect(screen.getByText('New Task')).toBeTruthy();
@@ -52,6 +69,10 @@ describe('TasksScreen', () => {
 
   it('adds a task when description is entered and Add is pressed', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByTestId('add-button'));
     fireEvent.changeText(
@@ -69,6 +90,10 @@ describe('TasksScreen', () => {
   it('does not add a task when description is empty', async () => {
     render(<TasksScreen />);
 
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
+
     fireEvent.press(screen.getByTestId('add-button'));
     fireEvent.press(screen.getByText('Add'));
 
@@ -78,6 +103,10 @@ describe('TasksScreen', () => {
 
   it('does not add a task when description is only whitespace', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByTestId('add-button'));
     fireEvent.changeText(
@@ -92,6 +121,10 @@ describe('TasksScreen', () => {
   it('clears input and closes modal after adding a task', async () => {
     render(<TasksScreen />);
 
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
+
     fireEvent.press(screen.getByTestId('add-button'));
     fireEvent.changeText(
       screen.getByPlaceholderText('What needs to be done?'),
@@ -99,9 +132,13 @@ describe('TasksScreen', () => {
     );
     fireEvent.press(screen.getByText('Add'));
 
+    // Wait for the task to appear (indicating async save completed)
     await waitFor(() => {
-      expect(screen.queryByText('New Task')).toBeNull();
+      expect(screen.getByText('Test task')).toBeTruthy();
     });
+
+    // Modal should now be closed
+    expect(screen.queryByText('New Task')).toBeNull();
 
     fireEvent.press(screen.getByTestId('add-button'));
     expect(screen.getByPlaceholderText('What needs to be done?').props.value).toBe('');
@@ -109,6 +146,10 @@ describe('TasksScreen', () => {
 
   it('clears input when Cancel is pressed', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByTestId('add-button'));
     fireEvent.changeText(
@@ -127,6 +168,10 @@ describe('TasksScreen', () => {
 
   it('toggles task completion when task is pressed', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     fireEvent.press(screen.getByTestId('add-button'));
     fireEvent.changeText(
@@ -151,6 +196,10 @@ describe('TasksScreen', () => {
   it('can toggle task back to incomplete', async () => {
     render(<TasksScreen />);
 
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
+
     fireEvent.press(screen.getByTestId('add-button'));
     fireEvent.changeText(
       screen.getByPlaceholderText('What needs to be done?'),
@@ -162,10 +211,13 @@ describe('TasksScreen', () => {
       expect(screen.getByText('Toggle me')).toBeTruthy();
     });
 
-    const taskText = screen.getByText('Toggle me');
-
     // Complete the task
-    fireEvent.press(taskText);
+    fireEvent.press(screen.getByText('Toggle me'));
+
+    await waitFor(() => {
+      const completedTask = screen.getByText('Toggle me');
+      expect(hasStyleProperty(completedTask.props.style, 'opacity', 0.5)).toBe(true);
+    });
 
     // Uncomplete the task
     fireEvent.press(screen.getByText('Toggle me'));
@@ -178,6 +230,10 @@ describe('TasksScreen', () => {
 
   it('can add multiple tasks', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     // Add first task
     fireEvent.press(screen.getByTestId('add-button'));
@@ -209,6 +265,10 @@ describe('TasksScreen', () => {
 
   it('toggling one task does not affect other tasks', async () => {
     render(<TasksScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
 
     // Add two tasks
     fireEvent.press(screen.getByTestId('add-button'));

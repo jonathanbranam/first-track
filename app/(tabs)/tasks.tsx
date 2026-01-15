@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   FlatList,
   Modal,
@@ -14,6 +14,7 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
 
 interface Task {
   id: string;
@@ -27,30 +28,54 @@ export default function TasksScreen() {
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const colorScheme = useColorScheme() ?? 'light';
 
+  const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>('tasklist', 'default');
+
   const colors = Colors[colorScheme];
 
-  const addTask = () => {
-    if (newTaskDescription.trim()) {
-      setTasks([
-        ...tasks,
-        {
-          id: Date.now().toString(),
-          description: newTaskDescription.trim(),
-          completed: false,
-        },
-      ]);
-      setNewTaskDescription('');
-      setModalVisible(false);
-    }
-  };
+  useEffect(() => {
+    if (loading || !taskIds) return;
 
-  const toggleTask = (id: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
+    async function loadTasks() {
+      const loadedTasks = await Promise.all(
+        taskIds.map((id) => getStorageItem<Task>('task', id))
+      );
+      setTasks(loadedTasks.filter((task): task is Task => task !== null));
+    }
+
+    loadTasks();
+  }, [taskIds, loading]);
+
+  const addTask = useCallback(async () => {
+    const trimmed = newTaskDescription.trim();
+    if (!trimmed) return;
+
+    const newTask: Task = {
+      id: Date.now().toString(),
+      description: trimmed,
+      completed: false,
+    };
+
+    await setStorageItem('task', newTask.id, newTask);
+
+    const updatedIds = [...(taskIds || []), newTask.id];
+    await saveTaskList(updatedIds);
+
+    setTasks((prev) => [...prev, newTask]);
+    setNewTaskDescription('');
+    setModalVisible(false);
+  }, [newTaskDescription, taskIds, saveTaskList]);
+
+  const toggleTask = useCallback(async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    const updatedTask = { ...task, completed: !task.completed };
+    await setStorageItem('task', id, updatedTask);
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? updatedTask : t))
     );
-  };
+  }, [tasks]);
 
   const renderTask = ({ item }: { item: Task }) => (
     <TouchableOpacity
