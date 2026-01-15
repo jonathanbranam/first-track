@@ -21,6 +21,14 @@ describe('TasksScreen', () => {
     await AsyncStorage.clear();
   });
 
+  afterEach(async () => {
+    // Flush all pending promises and microtasks to prevent state updates
+    // from leaking into subsequent tests
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  });
+
   describe('rendering', () => {
     it('renders the title', async () => {
       render(<TasksScreen />);
