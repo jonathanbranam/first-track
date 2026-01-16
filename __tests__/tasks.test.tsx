@@ -2,7 +2,7 @@ import React from 'react';
 import { render, fireEvent, screen, waitFor, act } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import TasksScreen from '@/app/(tabs)/tasks';
+import TasksScreen from '@/app/(tabs)/index';
 
 // Store the latest focus callback for manual triggering in tests
 let focusCallback: (() => void) | null = null;
