@@ -13,6 +13,7 @@ import DraggableFlatList, {
   RenderItemParams,
 } from 'react-native-draggable-flatlist';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -39,13 +40,20 @@ export default function TasksScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
-  const { data: taskListIds } = useStorage<string[]>('tasklists', 'all');
+  const { data: taskListIds, refresh: refreshTaskListIds } = useStorage<string[]>('tasklists', 'all');
   const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>(
     'tasklist-tasks',
     selectedTaskList?.id || 'default'
   );
 
   const colors = Colors[colorScheme];
+
+  // Refresh task lists when screen gains focus (e.g., switching tabs)
+  useFocusEffect(
+    useCallback(() => {
+      refreshTaskListIds();
+    }, [refreshTaskListIds])
+  );
 
   // Load task lists
   useEffect(() => {

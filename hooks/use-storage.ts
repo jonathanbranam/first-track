@@ -11,6 +11,17 @@ export function useStorage<T>(label: string, key: string) {
 
   const compositeKey = buildKey(label, key);
 
+  const loadData = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem(compositeKey);
+      setData(stored ? JSON.parse(stored) : null);
+    } catch (error) {
+      console.error('Failed to load from storage:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [compositeKey]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -36,6 +47,10 @@ export function useStorage<T>(label: string, key: string) {
     };
   }, [compositeKey]);
 
+  const refresh = useCallback(async () => {
+    await loadData();
+  }, [loadData]);
+
   const save = useCallback(
     async (value: T) => {
       try {
@@ -59,7 +74,7 @@ export function useStorage<T>(label: string, key: string) {
     }
   }, [compositeKey]);
 
-  return { data, loading, save, remove };
+  return { data, loading, save, remove, refresh };
 }
 
 export async function getStorageItem<T>(label: string, key: string): Promise<T | null> {

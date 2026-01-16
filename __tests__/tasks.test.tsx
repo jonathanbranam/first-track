@@ -4,6 +4,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import TasksScreen from '@/app/(tabs)/tasks';
 
+// Store the latest focus callback for manual triggering in tests
+let focusCallback: (() => void) | null = null;
+
+// Mock useFocusEffect to capture the callback without calling it
+// The component's regular useEffect handles initial data loading
+jest.mock('expo-router', () => ({
+  useFocusEffect: jest.fn((callback: () => void) => {
+    // Store the callback for manual triggering in tests
+    focusCallback = callback;
+  }),
+}));
+
+// Helper to simulate screen focus (call this to trigger refresh)
+const simulateFocus = async () => {
+  if (focusCallback) {
+    await act(async () => {
+      focusCallback!();
+    });
+  }
+};
+
 // Helper to check if a style property exists in a potentially nested style array
 const hasStyleProperty = (styles: any, property: string, value: any): boolean => {
   if (!styles) return false;
@@ -16,9 +37,25 @@ const hasStyleProperty = (styles: any, property: string, value: any): boolean =>
   return false;
 };
 
+// Helper to set up required task lists for TasksScreen
+const setupTaskLists = async () => {
+  const defaultList = {
+    id: 'default',
+    name: 'Default',
+    emoji: '📝',
+    color: '#FF6B6B',
+  };
+  await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default']));
+  await AsyncStorage.setItem('tasklist-default', JSON.stringify(defaultList));
+};
+
 describe('TasksScreen', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
+    // TasksScreen requires task lists to be set up
+    await setupTaskLists();
+    // Reset focus callback between tests
+    focusCallback = null;
   });
 
   afterEach(async () => {
@@ -505,7 +542,8 @@ describe('TasksScreen', () => {
       });
 
       // Check that the task in storage has deletedAt set
-      const storedTask = await AsyncStorage.getItem(`task-${taskId}`);
+      // Storage key format is: task-{listId}-{taskId}
+      const storedTask = await AsyncStorage.getItem(`task-default-${taskId}`);
       expect(storedTask).not.toBeNull();
       const task = JSON.parse(storedTask!);
       expect(task.deletedAt).toBeDefined();
@@ -624,6 +662,80 @@ describe('TasksScreen', () => {
       // Deleted task should not appear
       expect(screen.queryByText('Task to be deleted')).toBeNull();
       expect(screen.getByText(/No tasks yet/)).toBeTruthy();
+    });
+  });
+
+  describe('task list synchronization', () => {
+    it('shows newly added task lists after returning to the screen', async () => {
+      const { unmount } = render(<TasksScreen />);
+
+      // Wait for initial render with default list
+      await waitFor(() => {
+        expect(screen.getByText('Default')).toBeTruthy();
+      });
+
+      // Simulate adding a new task list from the TaskLists screen
+      // by directly updating AsyncStorage
+      const newList = {
+        id: 'work-123',
+        name: 'Work Tasks',
+        emoji: '💼',
+        color: '#4ECDC4',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'work-123']));
+      await AsyncStorage.setItem('tasklist-work-123', JSON.stringify(newList));
+
+      // Unmount and remount to simulate returning to the Tasks tab
+      unmount();
+      render(<TasksScreen />);
+
+      // Wait for component to load
+      await waitFor(() => {
+        expect(screen.getByText('Default')).toBeTruthy();
+      });
+
+      // Open the dropdown
+      await act(async () => {
+        fireEvent.press(screen.getByText('Default'));
+      });
+
+      // The new task list should be visible in the dropdown
+      await waitFor(() => {
+        expect(screen.getByText('Work Tasks')).toBeTruthy();
+      });
+    });
+
+    it('refreshes task lists when screen gains focus', async () => {
+      // This test verifies that useFocusEffect triggers a refresh
+      render(<TasksScreen />);
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(screen.getByText('Default')).toBeTruthy();
+      });
+
+      // Simulate adding a new task list while on another tab
+      const newList = {
+        id: 'personal-456',
+        name: 'Personal',
+        emoji: '🏠',
+        color: '#96CEB4',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'personal-456']));
+      await AsyncStorage.setItem('tasklist-personal-456', JSON.stringify(newList));
+
+      // Simulate the screen gaining focus (like switching back to this tab)
+      await simulateFocus();
+
+      // Open the dropdown
+      await act(async () => {
+        fireEvent.press(screen.getByText('Default'));
+      });
+
+      // The new task list should be visible
+      await waitFor(() => {
+        expect(screen.getByText('Personal')).toBeTruthy();
+      });
     });
   });
 });
