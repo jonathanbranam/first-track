@@ -613,7 +613,7 @@ describe('TasksScreen', () => {
       expect(screen.getByText('Keep this task')).toBeTruthy();
     });
 
-    it.skip('does not show deleted tasks after reload', async () => {
+    it('does not show deleted tasks after reload', async () => {
       const { unmount } = render(<TasksScreen />);
 
       await waitFor(() => {
