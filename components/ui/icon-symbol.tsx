@@ -23,6 +23,8 @@ const MAPPING = {
   'checklist': 'checklist',
   'trash': 'delete',
   'line.3.horizontal': 'drag-handle',
+  'list.bullet.rectangle': 'list',
+  'pencil': 'edit',
 } as IconMapping;
 
 /**

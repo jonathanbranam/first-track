@@ -37,6 +37,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="checklist" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="task-lists"
+        options={{
+          title: 'Lists',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet.rectangle" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

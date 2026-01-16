@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ScrollView,
 } from 'react-native';
 import DraggableFlatList, {
   ScaleDecorator,
@@ -19,6 +20,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
+import { TaskList } from './task-lists';
 
 interface Task {
   id: string;
@@ -31,30 +33,59 @@ export default function TasksScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [taskLists, setTaskLists] = useState<TaskList[]>([]);
+  const [selectedTaskList, setSelectedTaskList] = useState<TaskList | null>(null);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
   const colorScheme = useColorScheme() ?? 'light';
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
-  const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>('tasklist', 'default');
+  const { data: taskListIds } = useStorage<string[]>('tasklists', 'all');
+  const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>(
+    'tasklist-tasks',
+    selectedTaskList?.id || 'default'
+  );
 
   const colors = Colors[colorScheme];
 
+  // Load task lists
   useEffect(() => {
-    if (loading || !taskIds) return;
+    if (!taskListIds) return;
+
+    async function loadTaskLists() {
+      const loaded = await Promise.all(
+        taskListIds.map((id) => getStorageItem<TaskList>('tasklist', id))
+      );
+      const validLists = loaded.filter((list): list is TaskList => list !== null);
+      setTaskLists(validLists);
+
+      // Select default list or first available list
+      if (!selectedTaskList && validLists.length > 0) {
+        const defaultList = validLists.find(list => list.id === 'default');
+        setSelectedTaskList(defaultList || validLists[0]);
+      }
+    }
+
+    loadTaskLists();
+  }, [taskListIds]);
+
+  // Load tasks for selected list
+  useEffect(() => {
+    if (loading || !taskIds || !selectedTaskList) return;
 
     async function loadTasks() {
       const loadedTasks = await Promise.all(
-        taskIds.map((id) => getStorageItem<Task>('task', id))
+        taskIds.map((id) => getStorageItem<Task>(`task-${selectedTaskList.id}`, id))
       );
       // Filter out null tasks and deleted tasks
       setTasks(loadedTasks.filter((task): task is Task => task !== null && !task.deletedAt));
     }
 
     loadTasks();
-  }, [taskIds, loading]);
+  }, [taskIds, loading, selectedTaskList]);
 
   const addTask = useCallback(async () => {
     const trimmed = newTaskDescription.trim();
-    if (!trimmed) return;
+    if (!trimmed || !selectedTaskList) return;
 
     const newTask: Task = {
       id: Date.now().toString(),
@@ -62,7 +93,7 @@ export default function TasksScreen() {
       completed: false,
     };
 
-    await setStorageItem('task', newTask.id, newTask);
+    await setStorageItem(`task-${selectedTaskList.id}`, newTask.id, newTask);
 
     const updatedIds = [...(taskIds || []), newTask.id];
     await saveTaskList(updatedIds);
@@ -70,33 +101,33 @@ export default function TasksScreen() {
     setTasks((prev) => [...prev, newTask]);
     setNewTaskDescription('');
     setModalVisible(false);
-  }, [newTaskDescription, taskIds, saveTaskList]);
+  }, [newTaskDescription, taskIds, saveTaskList, selectedTaskList]);
 
   const toggleTask = useCallback(async (id: string) => {
     const task = tasks.find((t) => t.id === id);
-    if (!task) return;
+    if (!task || !selectedTaskList) return;
 
     const updatedTask = { ...task, completed: !task.completed };
-    await setStorageItem('task', id, updatedTask);
+    await setStorageItem(`task-${selectedTaskList.id}`, id, updatedTask);
 
     setTasks((prev) =>
       prev.map((t) => (t.id === id ? updatedTask : t))
     );
-  }, [tasks]);
+  }, [tasks, selectedTaskList]);
 
   const deleteTask = useCallback(async (id: string) => {
     const task = tasks.find((t) => t.id === id);
-    if (!task) return;
+    if (!task || !selectedTaskList) return;
 
     const updatedTask = { ...task, deletedAt: Date.now() };
-    await setStorageItem('task', id, updatedTask);
+    await setStorageItem(`task-${selectedTaskList.id}`, id, updatedTask);
 
     // Close the swipeable
     swipeableRefs.current.get(id)?.close();
 
     // Remove from local state
     setTasks((prev) => prev.filter((t) => t.id !== id));
-  }, [tasks]);
+  }, [tasks, selectedTaskList]);
 
   const handleDragEnd = useCallback(async ({ data }: { data: Task[] }) => {
     setTasks(data);
@@ -200,6 +231,67 @@ export default function TasksScreen() {
         </TouchableOpacity>
       </ThemedView>
 
+      {selectedTaskList && (
+        <ThemedView style={styles.dropdownContainer}>
+          <TouchableOpacity
+            style={[
+              styles.dropdown,
+              { backgroundColor: colorScheme === 'light' ? '#f8f9fa' : '#2a2d2e' },
+            ]}
+            onPress={() => setDropdownVisible(!dropdownVisible)}
+            activeOpacity={0.7}>
+            <View style={styles.dropdownLeft}>
+              <View style={[styles.dropdownEmoji, { backgroundColor: selectedTaskList.color }]}>
+                <ThemedText style={styles.dropdownEmojiText}>{selectedTaskList.emoji}</ThemedText>
+              </View>
+              <ThemedText style={styles.dropdownText}>{selectedTaskList.name}</ThemedText>
+            </View>
+            <IconSymbol
+              name="chevron.right"
+              size={20}
+              color={colors.icon}
+              style={{
+                transform: [{ rotate: dropdownVisible ? '90deg' : '0deg' }],
+              }}
+            />
+          </TouchableOpacity>
+
+          {dropdownVisible && (
+            <ThemedView
+              style={[
+                styles.dropdownMenu,
+                { backgroundColor: colorScheme === 'light' ? '#f8f9fa' : '#2a2d2e' },
+              ]}>
+              <ScrollView style={styles.dropdownScroll}>
+                {taskLists.map((list) => (
+                  <TouchableOpacity
+                    key={list.id}
+                    style={[
+                      styles.dropdownItem,
+                      selectedTaskList.id === list.id && styles.dropdownItemSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedTaskList(list);
+                      setDropdownVisible(false);
+                    }}
+                    activeOpacity={0.7}>
+                    <View style={styles.dropdownLeft}>
+                      <View style={[styles.dropdownEmoji, { backgroundColor: list.color }]}>
+                        <ThemedText style={styles.dropdownEmojiText}>{list.emoji}</ThemedText>
+                      </View>
+                      <ThemedText style={styles.dropdownText}>{list.name}</ThemedText>
+                    </View>
+                    {selectedTaskList.id === list.id && (
+                      <IconSymbol name="checkmark" size={20} color={colors.tint} weight="bold" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </ThemedView>
+          )}
+        </ThemedView>
+      )}
+
       {tasks.length === 0 ? (
         <ThemedView style={styles.emptyState}>
           <IconSymbol
@@ -300,6 +392,62 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  dropdownContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    zIndex: 1000,
+  },
+  dropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+  },
+  dropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  dropdownEmoji: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  dropdownEmojiText: {
+    fontSize: 18,
+  },
+  dropdownText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dropdownMenu: {
+    marginTop: 8,
+    borderRadius: 8,
+    maxHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dropdownScroll: {
+    maxHeight: 250,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  dropdownItemSelected: {
+    opacity: 1,
   },
   listContent: {
     paddingRight: 20,
