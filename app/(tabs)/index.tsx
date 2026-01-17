@@ -1,34 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-  ScrollView,
-} from 'react-native';
-import DraggableFlatList, {
-  ScaleDecorator,
-  RenderItemParams,
-} from 'react-native-draggable-flatlist';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useFocusEffect } from 'expo-router';
 
+import { EmptyState } from '@/components/tasks/empty-state';
+import { TaskItem } from '@/components/tasks/task-item';
+import { TaskListDropdown } from '@/components/tasks/task-list-dropdown';
+import { TaskModal } from '@/components/tasks/task-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
-import { TaskList } from './task-lists';
-
-interface Task {
-  id: string;
-  description: string;
-  completed: boolean;
-  deletedAt?: number;
-}
+import { Task } from '@/types/task';
+import { TaskList } from '@/types/task-list';
 
 export default function TasksScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -143,81 +130,27 @@ export default function TasksScreen() {
     await saveTaskList(newTaskIds);
   }, [saveTaskList]);
 
-  const renderRightActions = useCallback((id: string) => (
-    <TouchableOpacity
-      testID={`delete-action-${id}`}
-      style={styles.deleteAction}
-      onPress={() => deleteTask(id)}>
-      <IconSymbol name="trash" size={24} color="#fff" />
-    </TouchableOpacity>
-  ), [deleteTask]);
+  const handleSwipeableRef = useCallback((ref: Swipeable | null, id: string) => {
+    if (ref) {
+      swipeableRefs.current.set(id, ref);
+    } else {
+      swipeableRefs.current.delete(id);
+    }
+  }, []);
 
-  const renderTask = useCallback(({ item, drag, isActive }: RenderItemParams<Task>) => (
-    <ScaleDecorator activeScale={1.03}>
-      <Swipeable
-        ref={(ref) => {
-          if (ref) {
-            swipeableRefs.current.set(item.id, ref);
-          } else {
-            swipeableRefs.current.delete(item.id);
-          }
-        }}
-        renderRightActions={() => renderRightActions(item.id)}
-        overshootRight={false}
-        enabled={!isActive}>
-        <View style={[
-          styles.taskItem,
-          { backgroundColor: colors.background },
-          isActive && styles.taskItemActive,
-        ]}>
-          <TouchableOpacity
-            style={styles.taskContent}
-            onPress={() => toggleTask(item.id)}
-            activeOpacity={0.7}
-            disabled={isActive}>
-            <View
-              style={[
-                styles.checkbox,
-                {
-                  borderColor: colors.icon,
-                  backgroundColor: item.completed ? colors.tint : 'transparent',
-                },
-              ]}>
-              {item.completed && (
-                <IconSymbol
-                  name="checkmark"
-                  size={14}
-                  color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
-                  weight="bold"
-                />
-              )}
-            </View>
-            <ThemedText
-              style={[
-                styles.taskText,
-                item.completed && {
-                  opacity: 0.5,
-                  textDecorationLine: 'line-through',
-                },
-              ]}>
-              {item.description}
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            testID={`drag-handle-${item.id}`}
-            style={styles.dragHandle}
-            onPressIn={drag}
-            disabled={isActive}>
-            <IconSymbol
-              name="line.3.horizontal"
-              size={20}
-              color={colors.icon}
-            />
-          </TouchableOpacity>
-        </View>
-      </Swipeable>
-    </ScaleDecorator>
-  ), [colors, colorScheme, toggleTask, renderRightActions]);
+  const handleSelectTaskList = useCallback((list: TaskList) => {
+    setSelectedTaskList(list);
+    setDropdownVisible(false);
+  }, []);
+
+  const renderTask = useCallback((params: any) => (
+    <TaskItem
+      {...params}
+      onToggle={toggleTask}
+      onDelete={deleteTask}
+      swipeableRef={handleSwipeableRef}
+    />
+  ), [toggleTask, deleteTask, handleSwipeableRef]);
 
   return (
     <ThemedView style={styles.container}>
@@ -239,79 +172,18 @@ export default function TasksScreen() {
         </TouchableOpacity>
       </ThemedView>
 
-      {selectedTaskList && (
-        <ThemedView style={styles.dropdownContainer}>
-          <TouchableOpacity
-            style={[
-              styles.dropdown,
-              { backgroundColor: colorScheme === 'light' ? '#f8f9fa' : '#2a2d2e' },
-            ]}
-            onPress={() => setDropdownVisible(!dropdownVisible)}
-            activeOpacity={0.7}>
-            <View style={styles.dropdownLeft}>
-              <View style={[styles.dropdownEmoji, { backgroundColor: selectedTaskList.color }]}>
-                <ThemedText style={styles.dropdownEmojiText}>{selectedTaskList.emoji}</ThemedText>
-              </View>
-              <ThemedText style={styles.dropdownText}>{selectedTaskList.name}</ThemedText>
-            </View>
-            <IconSymbol
-              name="chevron.right"
-              size={20}
-              color={colors.icon}
-              style={{
-                transform: [{ rotate: dropdownVisible ? '90deg' : '0deg' }],
-              }}
-            />
-          </TouchableOpacity>
-
-          {dropdownVisible && (
-            <ThemedView
-              style={[
-                styles.dropdownMenu,
-                { backgroundColor: colorScheme === 'light' ? '#f8f9fa' : '#2a2d2e' },
-              ]}>
-              <ScrollView style={styles.dropdownScroll}>
-                {taskLists.map((list) => (
-                  <TouchableOpacity
-                    key={list.id}
-                    style={[
-                      styles.dropdownItem,
-                      selectedTaskList.id === list.id && styles.dropdownItemSelected,
-                    ]}
-                    onPress={() => {
-                      setSelectedTaskList(list);
-                      setDropdownVisible(false);
-                    }}
-                    activeOpacity={0.7}>
-                    <View style={styles.dropdownLeft}>
-                      <View style={[styles.dropdownEmoji, { backgroundColor: list.color }]}>
-                        <ThemedText style={styles.dropdownEmojiText}>{list.emoji}</ThemedText>
-                      </View>
-                      <ThemedText style={styles.dropdownText}>{list.name}</ThemedText>
-                    </View>
-                    {selectedTaskList.id === list.id && (
-                      <IconSymbol name="checkmark" size={20} color={colors.tint} weight="bold" />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </ThemedView>
-          )}
-        </ThemedView>
-      )}
+      <TaskListDropdown
+        taskLists={taskLists}
+        selectedTaskList={selectedTaskList}
+        isOpen={dropdownVisible}
+        onToggle={() => setDropdownVisible(!dropdownVisible)}
+        onSelect={handleSelectTaskList}
+        iconColor={colors.icon}
+        tintColor={colors.tint}
+      />
 
       {tasks.length === 0 ? (
-        <ThemedView style={styles.emptyState}>
-          <IconSymbol
-            name="checklist"
-            size={64}
-            color={colors.icon}
-            style={{ marginBottom: 16 }}
-          />
-          <ThemedText style={{ opacity: 0.6, textAlign: 'center' }}>
-            No tasks yet.{'\n'}Tap the + button to add one.
-          </ThemedText>
-        </ThemedView>
+        <EmptyState iconColor={colors.icon} />
       ) : (
         <DraggableFlatList
           data={tasks}
@@ -323,61 +195,13 @@ export default function TasksScreen() {
         />
       )}
 
-      <Modal
-        animationType="fade"
-        transparent={true}
+      <TaskModal
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}>
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setModalVisible(false)}>
-          <Pressable
-            style={[styles.modalContent, { backgroundColor: colors.background }]}
-            onPress={(e) => e.stopPropagation()}>
-            <ThemedText type="subtitle" style={{ marginBottom: 16 }}>
-              New Task
-            </ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  borderColor: colors.icon,
-                  color: colors.text,
-                },
-              ]}
-              placeholder="What needs to be done?"
-              placeholderTextColor={colors.icon}
-              value={newTaskDescription}
-              onChangeText={setNewTaskDescription}
-              autoFocus
-              onSubmitEditing={addTask}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setNewTaskDescription('');
-                  setModalVisible(false);
-                }}>
-                <ThemedText>Cancel</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.submitButton,
-                  { backgroundColor: colors.tint },
-                ]}
-                onPress={addTask}>
-                <ThemedText
-                  lightColor="#fff"
-                  darkColor={Colors.dark.background}>
-                  Add
-                </ThemedText>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        taskDescription={newTaskDescription}
+        onClose={() => setModalVisible(false)}
+        onSave={addTask}
+        onDescriptionChange={setNewTaskDescription}
+      />
     </ThemedView>
   );
 }
@@ -401,156 +225,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dropdownContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    zIndex: 1000,
-  },
-  dropdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-  },
-  dropdownLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  dropdownEmoji: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  dropdownEmojiText: {
-    fontSize: 18,
-  },
-  dropdownText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  dropdownMenu: {
-    marginTop: 8,
-    borderRadius: 8,
-    maxHeight: 250,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  dropdownScroll: {
-    maxHeight: 250,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
-  },
-  dropdownItemSelected: {
-    opacity: 1,
-  },
   listContent: {
     paddingRight: 20,
-  },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingLeft: 20,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128, 128, 128, 0.3)',
-  },
-  taskItemActive: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  taskContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dragHandle: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteAction: {
-    backgroundColor: '#ff3b30',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    height: '100%',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  taskText: {
-    flex: 1,
-    fontSize: 16,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '85%',
-    maxWidth: 400,
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 14,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  modalButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-  },
-  submitButton: {
-    minWidth: 80,
-    alignItems: 'center',
   },
 });

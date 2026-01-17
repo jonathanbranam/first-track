@@ -15,6 +15,8 @@ npm test -- --watch    # Run tests in watch mode
 npm test -- tasks.test # Run specific test file
 ```
 
+**Note for Claude Web Environment:** Before running tests, you must first run `npm install` to ensure all dependencies (including Jest) are installed in the node_modules directory.
+
 ## Architecture
 
 This is a React Native mobile app built with Expo (v54) and TypeScript, targeting iOS, Android, and web platforms.
