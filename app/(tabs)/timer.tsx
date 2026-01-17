@@ -35,7 +35,7 @@ export default function TimerScreen() {
 
   const handleStartActivity = async (activity: Activity) => {
     await startActivity(activity.id);
-    setCurrentActivity(activity);
+    // currentActivity will be updated by the useEffect when session changes
   };
 
   const handlePause = async () => {
@@ -48,7 +48,7 @@ export default function TimerScreen() {
 
   const handleStop = async () => {
     await stopActivity();
-    setCurrentActivity(null);
+    // currentActivity will be updated by the useEffect when session changes
   };
 
   const hasActiveSession = session !== null && session !== undefined;
