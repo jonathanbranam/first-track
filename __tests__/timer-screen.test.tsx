@@ -277,4 +277,219 @@ describe('TimerScreen', () => {
       expect(getByText('Work')).toBeTruthy();
     });
   });
+
+  describe('Activity Stack', () => {
+    it('should display stack badge when there are paused activities', () => {
+      (useActivitySession as jest.Mock).mockReturnValue({
+        session: {
+          currentLog: {
+            id: '1',
+            activityId: '1',
+            startTime: Date.now() - 5000,
+            duration: 0,
+            pauseIntervals: [],
+          },
+          isPaused: false,
+          pausedActivityStack: [
+            {
+              id: '2',
+              activityId: '2',
+              startTime: Date.now() - 10000,
+              duration: 0,
+              pauseIntervals: [{ pausedAt: Date.now() - 5000 }],
+            },
+          ],
+        },
+        startActivity: jest.fn(),
+        pauseActivity: jest.fn(),
+        resumeActivity: jest.fn(),
+        stopActivity: jest.fn(),
+        switchActivity: jest.fn(),
+        resumeFromStack: jest.fn(),
+      });
+
+      const { getByText } = render(<TimerScreen />);
+
+      expect(getByText('1')).toBeTruthy(); // Stack badge with count
+    });
+
+    it('should display switch activity button when timer is running', () => {
+      (useActivitySession as jest.Mock).mockReturnValue({
+        session: {
+          currentLog: {
+            id: '1',
+            activityId: '1',
+            startTime: Date.now() - 5000,
+            duration: 0,
+            pauseIntervals: [],
+          },
+          isPaused: false,
+          pausedActivityStack: [],
+        },
+        startActivity: jest.fn(),
+        pauseActivity: jest.fn(),
+        resumeActivity: jest.fn(),
+        stopActivity: jest.fn(),
+        switchActivity: jest.fn(),
+        resumeFromStack: jest.fn(),
+      });
+
+      const { getByText } = render(<TimerScreen />);
+
+      expect(getByText('Switch Activity')).toBeTruthy();
+    });
+
+    it('should display paused activities list when stack is not empty', () => {
+      (useActivitySession as jest.Mock).mockReturnValue({
+        session: {
+          currentLog: {
+            id: '1',
+            activityId: '1',
+            startTime: Date.now() - 5000,
+            duration: 0,
+            pauseIntervals: [],
+          },
+          isPaused: false,
+          pausedActivityStack: [
+            {
+              id: '2',
+              activityId: '2',
+              startTime: Date.now() - 10000,
+              duration: 0,
+              pauseIntervals: [{ pausedAt: Date.now() - 5000 }],
+            },
+          ],
+        },
+        startActivity: jest.fn(),
+        pauseActivity: jest.fn(),
+        resumeActivity: jest.fn(),
+        stopActivity: jest.fn(),
+        switchActivity: jest.fn(),
+        resumeFromStack: jest.fn(),
+      });
+
+      const { getByText } = render(<TimerScreen />);
+
+      expect(getByText('Paused Activities (1)')).toBeTruthy();
+      expect(getByText('Exercise')).toBeTruthy(); // activity-2 is Exercise
+    });
+
+    it('should call switchActivity when Switch Activity button is pressed', () => {
+      const mockSwitchActivity = jest.fn();
+      (useActivitySession as jest.Mock).mockReturnValue({
+        session: {
+          currentLog: {
+            id: '1',
+            activityId: '1',
+            startTime: Date.now() - 5000,
+            duration: 0,
+            pauseIntervals: [],
+          },
+          isPaused: false,
+          pausedActivityStack: [],
+        },
+        startActivity: jest.fn(),
+        pauseActivity: jest.fn(),
+        resumeActivity: jest.fn(),
+        stopActivity: jest.fn(),
+        switchActivity: mockSwitchActivity,
+        resumeFromStack: jest.fn(),
+      });
+
+      const { getByText } = render(<TimerScreen />);
+
+      // Click Switch Activity button
+      fireEvent.press(getByText('Switch Activity'));
+
+      // Should open activity picker
+      expect(getByText('Select Activity')).toBeTruthy();
+
+      // Select an activity
+      fireEvent.press(getByText('Exercise'));
+
+      expect(mockSwitchActivity).toHaveBeenCalledWith('2');
+    });
+
+    it('should call resumeFromStack when paused activity is pressed', () => {
+      const mockResumeFromStack = jest.fn();
+      (useActivitySession as jest.Mock).mockReturnValue({
+        session: {
+          currentLog: {
+            id: '1',
+            activityId: '1',
+            startTime: Date.now() - 5000,
+            duration: 0,
+            pauseIntervals: [],
+          },
+          isPaused: false,
+          pausedActivityStack: [
+            {
+              id: '2',
+              activityId: '2',
+              startTime: Date.now() - 10000,
+              duration: 0,
+              pauseIntervals: [{ pausedAt: Date.now() - 5000 }],
+            },
+          ],
+        },
+        startActivity: jest.fn(),
+        pauseActivity: jest.fn(),
+        resumeActivity: jest.fn(),
+        stopActivity: jest.fn(),
+        switchActivity: jest.fn(),
+        resumeFromStack: mockResumeFromStack,
+      });
+
+      const { getAllByText } = render(<TimerScreen />);
+
+      // Find and click the paused activity (Exercise appears twice: once in stack, once in picker)
+      const exerciseButtons = getAllByText('Exercise');
+      // The first one should be in the stack list
+      fireEvent.press(exerciseButtons[0]);
+
+      expect(mockResumeFromStack).toHaveBeenCalledWith(0);
+    });
+
+    it('should display multiple paused activities in stack', () => {
+      (useActivitySession as jest.Mock).mockReturnValue({
+        session: {
+          currentLog: {
+            id: '1',
+            activityId: '1',
+            startTime: Date.now() - 5000,
+            duration: 0,
+            pauseIntervals: [],
+          },
+          isPaused: false,
+          pausedActivityStack: [
+            {
+              id: '2',
+              activityId: '2',
+              startTime: Date.now() - 10000,
+              duration: 0,
+              pauseIntervals: [{ pausedAt: Date.now() - 5000 }],
+            },
+            {
+              id: '3',
+              activityId: '1', // Same activity as current but different log
+              startTime: Date.now() - 15000,
+              duration: 0,
+              pauseIntervals: [{ pausedAt: Date.now() - 8000 }],
+            },
+          ],
+        },
+        startActivity: jest.fn(),
+        pauseActivity: jest.fn(),
+        resumeActivity: jest.fn(),
+        stopActivity: jest.fn(),
+        switchActivity: jest.fn(),
+        resumeFromStack: jest.fn(),
+      });
+
+      const { getByText } = render(<TimerScreen />);
+
+      expect(getByText('Paused Activities (2)')).toBeTruthy();
+      expect(getByText('2')).toBeTruthy(); // Stack badge
+    });
+  });
 });

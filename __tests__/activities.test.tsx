@@ -526,5 +526,285 @@ describe('Activity Hooks', () => {
       expect(result.current.session?.currentLog.activityId).toBe('activity-1');
       expect(result.current.session?.isPaused).toBe(false);
     });
+
+    it('should switch to a different activity', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Start first activity
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-1');
+      });
+
+      // Switch to second activity
+      await act(async () => {
+        await result.current.switchActivity('activity-2');
+      });
+
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-2');
+        expect(result.current.session?.isPaused).toBe(false);
+        expect(result.current.session?.pausedActivityStack).toHaveLength(1);
+        expect(result.current.session?.pausedActivityStack[0].activityId).toBe('activity-1');
+        // First activity should be paused
+        expect(result.current.session?.pausedActivityStack[0].pauseIntervals.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should switch activity when already paused', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Start and pause first activity
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      await act(async () => {
+        await result.current.pauseActivity();
+      });
+
+      // Switch to second activity
+      await act(async () => {
+        await result.current.switchActivity('activity-2');
+      });
+
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-2');
+        expect(result.current.session?.isPaused).toBe(false);
+        expect(result.current.session?.pausedActivityStack).toHaveLength(1);
+        expect(result.current.session?.pausedActivityStack[0].activityId).toBe('activity-1');
+      });
+    });
+
+    it('should handle multiple activity switches (activity stack)', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Start first activity
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      // Switch to second activity
+      await act(async () => {
+        await result.current.switchActivity('activity-2');
+      });
+
+      // Switch to third activity
+      await act(async () => {
+        await result.current.switchActivity('activity-3');
+      });
+
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-3');
+        expect(result.current.session?.pausedActivityStack).toHaveLength(2);
+        expect(result.current.session?.pausedActivityStack[0].activityId).toBe('activity-1');
+        expect(result.current.session?.pausedActivityStack[1].activityId).toBe('activity-2');
+      });
+    });
+
+    it('should resume from stack (most recent)', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Start first activity
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      // Switch to second activity
+      await act(async () => {
+        await result.current.switchActivity('activity-2');
+      });
+
+      // Resume from stack (should resume activity-1)
+      await act(async () => {
+        await result.current.resumeFromStack();
+      });
+
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-1');
+        expect(result.current.session?.isPaused).toBe(false);
+        expect(result.current.session?.pausedActivityStack).toHaveLength(1);
+        expect(result.current.session?.pausedActivityStack[0].activityId).toBe('activity-2');
+        // Activity-1 should have its pause interval resumed
+        const activity1 = result.current.session?.currentLog;
+        expect(activity1?.pauseIntervals.length).toBeGreaterThan(0);
+        expect(activity1?.pauseIntervals[activity1.pauseIntervals.length - 1].resumedAt).toBeDefined();
+      });
+    });
+
+    it('should resume from stack by index', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Create a stack with 3 activities
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      await act(async () => {
+        await result.current.switchActivity('activity-2');
+      });
+
+      await act(async () => {
+        await result.current.switchActivity('activity-3');
+      });
+
+      // Stack should be [activity-1, activity-2], current is activity-3
+      await waitFor(() => {
+        expect(result.current.session?.pausedActivityStack).toHaveLength(2);
+      });
+
+      // Resume activity-1 (index 0)
+      await act(async () => {
+        await result.current.resumeFromStack(0);
+      });
+
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-1');
+        expect(result.current.session?.pausedActivityStack).toHaveLength(2);
+        // Stack should now be [activity-2, activity-3]
+        expect(result.current.session?.pausedActivityStack[0].activityId).toBe('activity-2');
+        expect(result.current.session?.pausedActivityStack[1].activityId).toBe('activity-3');
+      });
+    });
+
+    it('should handle resumeFromStack with empty stack', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Start an activity
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      // Try to resume from empty stack
+      await act(async () => {
+        await result.current.resumeFromStack();
+      });
+
+      // Should not throw, session should remain unchanged
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-1');
+        expect(result.current.session?.pausedActivityStack).toHaveLength(0);
+      });
+    });
+
+    it('should throw error for invalid stack index', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Start and switch activities to create a stack
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      await act(async () => {
+        await result.current.switchActivity('activity-2');
+      });
+
+      // Try to resume with invalid index
+      await expect(async () => {
+        await act(async () => {
+          await result.current.resumeFromStack(10);
+        });
+      }).rejects.toThrow('Invalid stack index');
+    });
+
+    it('should start new activity when switching with no active session', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Switch activity when no session exists
+      await act(async () => {
+        await result.current.switchActivity('activity-1');
+      });
+
+      await waitFor(() => {
+        expect(result.current.session?.currentLog.activityId).toBe('activity-1');
+        expect(result.current.session?.pausedActivityStack).toHaveLength(0);
+      });
+    });
+
+    it('should maintain pause timestamps through switch and resume', async () => {
+      const { result } = renderHook(() => useActivitySession());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Start first activity
+      const startTime = Date.now();
+      await act(async () => {
+        await result.current.startActivity('activity-1');
+      });
+
+      // Wait a bit
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Switch to second activity (this pauses activity-1)
+      const switchTime = Date.now();
+      await act(async () => {
+        await result.current.switchActivity('activity-2');
+      });
+
+      await waitFor(() => {
+        const pausedActivity = result.current.session?.pausedActivityStack[0];
+        expect(pausedActivity).toBeDefined();
+        expect(pausedActivity?.pauseIntervals).toHaveLength(1);
+        const pauseInterval = pausedActivity?.pauseIntervals[0];
+        expect(pauseInterval?.pausedAt).toBeGreaterThanOrEqual(switchTime - 10);
+        expect(pauseInterval?.pausedAt).toBeLessThanOrEqual(switchTime + 10);
+        expect(pauseInterval?.resumedAt).toBeUndefined();
+      });
+
+      // Wait a bit
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Resume from stack
+      const resumeTime = Date.now();
+      await act(async () => {
+        await result.current.resumeFromStack();
+      });
+
+      await waitFor(() => {
+        const resumedActivity = result.current.session?.currentLog;
+        expect(resumedActivity?.activityId).toBe('activity-1');
+        expect(resumedActivity?.pauseIntervals).toHaveLength(1);
+        const pauseInterval = resumedActivity?.pauseIntervals[0];
+        expect(pauseInterval?.resumedAt).toBeGreaterThanOrEqual(resumeTime - 10);
+        expect(pauseInterval?.resumedAt).toBeLessThanOrEqual(resumeTime + 10);
+      });
+    });
   });
 });

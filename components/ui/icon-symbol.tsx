@@ -31,6 +31,8 @@ const MAPPING = {
   'play': 'play-arrow',
   'stop': 'stop',
   'timer': 'timer',
+  'arrow.left.arrow.right': 'swap-horiz',
+  'play.circle': 'play-circle-outline',
 } as IconMapping;
 
 /**

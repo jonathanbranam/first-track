@@ -130,13 +130,13 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Add visual indicator for paused vs active state
 
 ### 3.4 Activity Stack & Context Switching
-- [ ] Implement activity stack data structure
-- [ ] Add "Switch Activity" functionality (auto-pause current)
-- [ ] Create activity stack view showing paused activities
-- [ ] Implement "Resume Previous" from stack
-- [ ] Handle multiple paused activities
-- [ ] Add visual indication of activity stack depth
-- [ ] Store pause/resume timestamps for analysis
+- [x] Implement activity stack data structure
+- [x] Add "Switch Activity" functionality (auto-pause current)
+- [x] Create activity stack view showing paused activities
+- [x] Implement "Resume Previous" from stack
+- [x] Handle multiple paused activities
+- [x] Add visual indication of activity stack depth
+- [x] Store pause/resume timestamps for analysis
 
 ### 3.5 Persistent Timer (Background Support)
 - [ ] Implement timer state persistence across app restarts
@@ -162,7 +162,7 @@ This document lists all tasks required to implement the remaining features from 
 ### 3.8 Testing
 - [x] Add unit tests for timer logic
 - [x] Add tests for pause/resume functionality
-- [ ] Add tests for activity stack management
+- [x] Add tests for activity stack management
 - [x] Add tests for duration calculations
 - [x] Add integration tests for clock-in/out flow
 
