@@ -1,0 +1,5 @@
+{
+  "hooks": {
+    "sessionStart": "npm install"
+  }
+}
