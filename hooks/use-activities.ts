@@ -113,6 +113,26 @@ export function useActivities() {
     [updateActivity]
   );
 
+  /**
+   * Create default seed activities
+   */
+  const createDefaultActivities = useCallback(async () => {
+    const defaultActivities = [
+      { name: 'Work - Focus Time', category: 'Work', color: '#4ECDC4' },
+      { name: 'Meetings', category: 'Work', color: '#45B7D1' },
+      { name: 'Email & Admin', category: 'Work', color: '#85C1E2' },
+      { name: 'Exercise', category: 'Exercise', color: '#98D8C8' },
+      { name: 'Learning', category: 'Learning', color: '#F7DC6F' },
+      { name: 'Personal Projects', category: 'Personal', color: '#BB8FCE' },
+      { name: 'Household Tasks', category: 'Home', color: '#FFA07A' },
+      { name: 'Social Time', category: 'Social', color: '#FF6B6B' },
+    ];
+
+    for (const activity of defaultActivities) {
+      await createActivity(activity);
+    }
+  }, [createActivity]);
+
   return {
     activities,
     activeActivities: activities.filter((a) => a.active),
@@ -123,6 +143,7 @@ export function useActivities() {
     deleteActivity,
     deactivateActivity,
     reactivateActivity,
+    createDefaultActivities,
     refresh,
   };
 }
