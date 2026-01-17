@@ -119,15 +119,15 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Create default activities seed data
 
 ### 3.3 Timer Interface
-- [ ] Create Activity Timer screen/tab
-- [ ] Design timer display component (HH:MM:SS)
-- [ ] Add "Start Activity" button with activity picker
-- [ ] Implement running timer display
-- [ ] Add "Pause" button functionality
-- [ ] Add "Resume" button functionality
-- [ ] Add "Stop/Clock Out" button with save
-- [ ] Show current activity name while running
-- [ ] Add visual indicator for paused vs active state
+- [x] Create Activity Timer screen/tab
+- [x] Design timer display component (HH:MM:SS)
+- [x] Add "Start Activity" button with activity picker
+- [x] Implement running timer display
+- [x] Add "Pause" button functionality
+- [x] Add "Resume" button functionality
+- [x] Add "Stop/Clock Out" button with save
+- [x] Show current activity name while running
+- [x] Add visual indicator for paused vs active state
 
 ### 3.4 Activity Stack & Context Switching
 - [ ] Implement activity stack data structure
@@ -160,11 +160,11 @@ This document lists all tasks required to implement the remaining features from 
 - [ ] Identify patterns and trends
 
 ### 3.8 Testing
-- [ ] Add unit tests for timer logic
-- [ ] Add tests for pause/resume functionality
+- [x] Add unit tests for timer logic
+- [x] Add tests for pause/resume functionality
 - [ ] Add tests for activity stack management
-- [ ] Add tests for duration calculations
-- [ ] Add integration tests for clock-in/out flow
+- [x] Add tests for duration calculations
+- [x] Add integration tests for clock-in/out flow
 
 ---
 
