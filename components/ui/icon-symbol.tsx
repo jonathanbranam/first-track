@@ -27,6 +27,10 @@ const MAPPING = {
   'pencil': 'edit',
   'gearshape': 'settings',
   'clock': 'schedule',
+  'pause': 'pause',
+  'play': 'play-arrow',
+  'stop': 'stop',
+  'timer': 'timer',
 } as IconMapping;
 
 /**
