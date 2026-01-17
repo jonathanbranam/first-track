@@ -19,6 +19,9 @@ npm test -- tasks.test # Run specific test file
 
 This is a React Native mobile app built with Expo (v54) and TypeScript, targeting iOS, Android, and web platforms.
 
+### App Features
+The design and specification for app features are documented in `app-feature-list.md` at the repository root. **Always reference this file when implementing new features** to ensure consistency with the intended design and functionality.
+
 ### Tech Stack
 - **Framework:** Expo with Expo Router (file-based routing)
 - **Language:** TypeScript with strict mode
