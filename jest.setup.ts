@@ -2,6 +2,17 @@ import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/asy
 
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
+// Mock Expo import.meta and winter runtime
+global.__ExpoImportMetaRegistry = {
+  register: jest.fn(),
+  get: jest.fn(),
+};
+
+// Mock structuredClone if not available
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = (obj: any) => JSON.parse(JSON.stringify(obj));
+}
+
 // Mock react-native-draggable-flatlist
 jest.mock('react-native-draggable-flatlist', () => {
   const { FlatList } = require('react-native');
