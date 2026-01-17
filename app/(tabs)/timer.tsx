@@ -15,9 +15,11 @@ import { Activity } from '@/types/activity';
 
 export default function TimerScreen() {
   const { activeActivities, loading: activitiesLoading } = useActivities();
-  const { session, startActivity, pauseActivity, resumeActivity, stopActivity } = useActivitySession();
+  const { session, startActivity, pauseActivity, resumeActivity, stopActivity, switchActivity, resumeFromStack } = useActivitySession();
   const [showActivityPicker, setShowActivityPicker] = useState(false);
+  const [showSwitchPicker, setShowSwitchPicker] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
+  const [stackActivities, setStackActivities] = useState<Activity[]>([]);
 
   const tintColor = useThemeColor({}, 'tint');
   const backgroundColor = useThemeColor({}, 'background');
@@ -30,6 +32,18 @@ export default function TimerScreen() {
       setCurrentActivity(activity || null);
     } else {
       setCurrentActivity(null);
+    }
+  }, [session, activeActivities]);
+
+  // Load paused stack activities
+  useEffect(() => {
+    if (session?.pausedActivityStack && activeActivities.length > 0) {
+      const stackActs = session.pausedActivityStack
+        .map(log => activeActivities.find(a => a.id === log.activityId))
+        .filter((a): a is Activity => a !== undefined);
+      setStackActivities(stackActs);
+    } else {
+      setStackActivities([]);
     }
   }, [session, activeActivities]);
 
@@ -51,14 +65,31 @@ export default function TimerScreen() {
     // currentActivity will be updated by the useEffect when session changes
   };
 
+  const handleSwitchActivity = async (activity: Activity) => {
+    await switchActivity(activity.id);
+    setShowSwitchPicker(false);
+  };
+
+  const handleResumeFromStack = async (index: number) => {
+    await resumeFromStack(index);
+  };
+
   const hasActiveSession = session !== null && session !== undefined;
   const isPaused = session?.isPaused || false;
+  const stackDepth = session?.pausedActivityStack.length || 0;
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <ThemedText style={styles.title}>Activity Timer</ThemedText>
+          <View style={styles.titleRow}>
+            <ThemedText style={styles.title}>Activity Timer</ThemedText>
+            {stackDepth > 0 && (
+              <View style={[styles.stackBadge, { backgroundColor: tintColor }]}>
+                <ThemedText style={styles.stackBadgeText}>{stackDepth}</ThemedText>
+              </View>
+            )}
+          </View>
         </View>
 
         {hasActiveSession && currentActivity ? (
@@ -116,6 +147,14 @@ export default function TimerScreen() {
               )}
 
               <TouchableOpacity
+                style={[styles.button, styles.switchButton, { borderColor: tintColor }]}
+                onPress={() => setShowSwitchPicker(true)}
+              >
+                <IconSymbol name="arrow.left.arrow.right" size={24} color={tintColor} />
+                <ThemedText style={[styles.switchButtonText, { color: tintColor }]}>Switch Activity</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={[styles.button, styles.stopButton]}
                 onPress={handleStop}
               >
@@ -123,6 +162,35 @@ export default function TimerScreen() {
                 <ThemedText style={styles.buttonText}>Stop & Save</ThemedText>
               </TouchableOpacity>
             </View>
+
+            {/* Paused Activity Stack */}
+            {stackDepth > 0 && (
+              <View style={styles.stackSection}>
+                <ThemedText style={styles.stackTitle}>
+                  Paused Activities ({stackDepth})
+                </ThemedText>
+                <View style={styles.stackList}>
+                  {stackActivities.map((activity, index) => (
+                    <TouchableOpacity
+                      key={`${activity.id}-${index}`}
+                      style={[styles.stackItem, { borderColor: borderColor }]}
+                      onPress={() => handleResumeFromStack(index)}
+                    >
+                      {activity.color && (
+                        <View style={[styles.stackColorIndicator, { backgroundColor: activity.color }]} />
+                      )}
+                      <View style={styles.stackItemInfo}>
+                        <ThemedText style={styles.stackItemName}>{activity.name}</ThemedText>
+                        {activity.category && (
+                          <ThemedText style={styles.stackItemCategory}>{activity.category}</ThemedText>
+                        )}
+                      </View>
+                      <IconSymbol name="play.circle" size={24} color={tintColor} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.emptyState}>
@@ -157,6 +225,14 @@ export default function TimerScreen() {
         onSelectActivity={handleStartActivity}
         onClose={() => setShowActivityPicker(false)}
       />
+
+      {/* Switch Activity Picker Modal */}
+      <ActivityPicker
+        visible={showSwitchPicker}
+        activities={activeActivities}
+        onSelectActivity={handleSwitchActivity}
+        onClose={() => setShowSwitchPicker(false)}
+      />
     </ThemedView>
   );
 }
@@ -172,8 +248,26 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 30,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   title: {
     fontSize: 32,
+    fontWeight: 'bold',
+  },
+  stackBadge: {
+    minWidth: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  stackBadgeText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   timerSection: {
@@ -243,8 +337,16 @@ const styles = StyleSheet.create({
   stopButton: {
     backgroundColor: '#DC3545',
   },
+  switchButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+  },
   buttonText: {
     color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  switchButtonText: {
     fontSize: 18,
     fontWeight: '600',
   },
@@ -285,5 +387,41 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     textAlign: 'center',
     marginTop: 20,
+  },
+  stackSection: {
+    marginTop: 32,
+  },
+  stackTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  stackList: {
+    gap: 8,
+  },
+  stackItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  stackColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  stackItemInfo: {
+    flex: 1,
+  },
+  stackItemName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  stackItemCategory: {
+    fontSize: 14,
+    opacity: 0.6,
+    marginTop: 2,
   },
 });

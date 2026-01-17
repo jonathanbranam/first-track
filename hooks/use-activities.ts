@@ -362,6 +362,113 @@ export function useActivitySession() {
     return finalLog;
   }, [session, removeSession]);
 
+  /**
+   * Switch to a different activity (auto-pause current and start new)
+   */
+  const switchActivity = useCallback(
+    async (activityId: string) => {
+      if (!session) {
+        // No current session, just start the new activity
+        return startActivity(activityId);
+      }
+
+      // Pause the current activity if it's running
+      let currentLog = session.currentLog;
+      if (!session.isPaused) {
+        // Add pause interval
+        currentLog = {
+          ...currentLog,
+          pauseIntervals: [
+            ...currentLog.pauseIntervals,
+            { pausedAt: Date.now() },
+          ],
+        };
+      }
+
+      // Create new activity log
+      const newLog: ActivityLog = {
+        id: Date.now().toString(),
+        activityId,
+        startTime: Date.now(),
+        duration: 0,
+        pauseIntervals: [],
+      };
+
+      // Push current activity to stack and start new one
+      const newSession: ActivitySession = {
+        currentLog: newLog,
+        isPaused: false,
+        pausedActivityStack: [...session.pausedActivityStack, currentLog],
+      };
+
+      await saveSession(newSession);
+      return newSession;
+    },
+    [session, saveSession, startActivity]
+  );
+
+  /**
+   * Resume an activity from the paused stack
+   */
+  const resumeFromStack = useCallback(
+    async (stackIndex?: number) => {
+      if (!session || session.pausedActivityStack.length === 0) {
+        return session;
+      }
+
+      // Default to the most recent paused activity (top of stack)
+      const index = stackIndex !== undefined ? stackIndex : session.pausedActivityStack.length - 1;
+
+      if (index < 0 || index >= session.pausedActivityStack.length) {
+        throw new Error('Invalid stack index');
+      }
+
+      // Get the activity to resume from the stack
+      const activityToResume = session.pausedActivityStack[index];
+
+      // Remove the activity from the stack
+      const newStack = session.pausedActivityStack.filter((_, i) => i !== index);
+
+      // Pause the current activity if it's running
+      let currentLog = session.currentLog;
+      if (!session.isPaused) {
+        currentLog = {
+          ...currentLog,
+          pauseIntervals: [
+            ...currentLog.pauseIntervals,
+            { pausedAt: Date.now() },
+          ],
+        };
+      }
+
+      // Resume the selected activity
+      const lastPauseIndex = activityToResume.pauseIntervals.length - 1;
+      const updatedPauseIntervals = [...activityToResume.pauseIntervals];
+      if (lastPauseIndex >= 0 && !updatedPauseIntervals[lastPauseIndex].resumedAt) {
+        updatedPauseIntervals[lastPauseIndex] = {
+          ...updatedPauseIntervals[lastPauseIndex],
+          resumedAt: Date.now(),
+        };
+      }
+
+      const resumedLog: ActivityLog = {
+        ...activityToResume,
+        pauseIntervals: updatedPauseIntervals,
+      };
+
+      // Update session with resumed activity as current and previous current added to stack
+      const newSession: ActivitySession = {
+        currentLog: resumedLog,
+        isPaused: false,
+        pausedActivityStack: [...newStack, currentLog],
+      };
+
+      await saveSession(newSession);
+      return newSession;
+    },
+    [session, saveSession]
+  );
+
   return {
     session,
     loading,
@@ -369,5 +476,7 @@ export function useActivitySession() {
     pauseActivity,
     resumeActivity,
     stopActivity,
+    switchActivity,
+    resumeFromStack,
   };
 }
