@@ -25,6 +25,8 @@ const MAPPING = {
   'line.3.horizontal': 'drag-handle',
   'list.bullet.rectangle': 'list',
   'pencil': 'edit',
+  'gearshape': 'settings',
+  'clock': 'schedule',
 } as IconMapping;
 
 /**

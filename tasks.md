@@ -103,20 +103,20 @@ This document lists all tasks required to implement the remaining features from 
 ## 3. Activity Timer & Time Tracking - Complete Feature
 
 ### 3.1 Data Models & Storage
-- [ ] Design Activity data model (name, type, active status)
-- [ ] Design ActivityLog data model (activityId, startTime, endTime, duration, paused intervals)
-- [ ] Design ActivitySession data model for managing active/paused state
-- [ ] Implement storage hooks for activities
-- [ ] Implement storage hooks for activity logs
-- [ ] Add data persistence with AsyncStorage
+- [x] Design Activity data model (name, type, active status)
+- [x] Design ActivityLog data model (activityId, startTime, endTime, duration, paused intervals)
+- [x] Design ActivitySession data model for managing active/paused state
+- [x] Implement storage hooks for activities
+- [x] Implement storage hooks for activity logs
+- [x] Add data persistence with AsyncStorage
 
 ### 3.2 Activity Configuration
-- [ ] Create Activities settings screen (under Settings)
-- [ ] Implement create/edit activity form
-- [ ] Add activity categories (work, home, personal, etc.)
-- [ ] Implement activate/deactivate activity toggle
-- [ ] Add delete activity with confirmation
-- [ ] Create default activities seed data
+- [x] Create Activities settings screen (under Settings)
+- [x] Implement create/edit activity form
+- [x] Add activity categories (work, home, personal, etc.)
+- [x] Implement activate/deactivate activity toggle
+- [x] Add delete activity with confirmation
+- [x] Create default activities seed data
 
 ### 3.3 Timer Interface
 - [ ] Create Activity Timer screen/tab
