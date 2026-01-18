@@ -1378,4 +1378,634 @@ describe('TasksScreen', () => {
       expect(screen.getByText('No other lists available')).toBeTruthy();
     });
   });
+
+  describe('bulk operations', () => {
+    it('enters selection mode when select button is pressed', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 1'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeTruthy();
+      });
+
+      // Press select button
+      const selectButton = screen.getByTestId('select-button');
+      await act(async () => {
+        fireEvent.press(selectButton);
+      });
+
+      // Should show cancel button and selection toolbar
+      await waitFor(() => {
+        expect(screen.getByTestId('cancel-selection-button')).toBeTruthy();
+        expect(screen.getByText('0 selected')).toBeTruthy();
+      });
+    });
+
+    it('allows selecting and deselecting individual tasks', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add two tasks
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 1'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeTruthy();
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 2'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 2')).toBeTruthy();
+      });
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('0 selected')).toBeTruthy();
+      });
+
+      // Get task IDs
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+
+      // Select first task
+      const selectCheckbox1 = screen.getByTestId(`select-checkbox-${ids[0]}`);
+      await act(async () => {
+        fireEvent.press(selectCheckbox1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('1 selected')).toBeTruthy();
+      });
+
+      // Select second task
+      const selectCheckbox2 = screen.getByTestId(`select-checkbox-${ids[1]}`);
+      await act(async () => {
+        fireEvent.press(selectCheckbox2);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('2 selected')).toBeTruthy();
+      });
+
+      // Deselect first task
+      await act(async () => {
+        fireEvent.press(selectCheckbox1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('1 selected')).toBeTruthy();
+      });
+    });
+
+    it('implements select all functionality', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add three tasks
+      for (let i = 1; i <= 3; i++) {
+        await act(async () => {
+          fireEvent.press(screen.getByTestId('add-button'));
+        });
+
+        await act(async () => {
+          fireEvent.changeText(
+            screen.getByPlaceholderText('What needs to be done?'),
+            `Task ${i}`
+          );
+        });
+
+        await act(async () => {
+          fireEvent.press(screen.getByText('Add'));
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(`Task ${i}`)).toBeTruthy();
+        });
+      }
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('0 selected')).toBeTruthy();
+      });
+
+      // Press select all button
+      const selectAllButton = screen.getByTestId('select-all-button');
+      await act(async () => {
+        fireEvent.press(selectAllButton);
+      });
+
+      // All tasks should be selected
+      await waitFor(() => {
+        expect(screen.getByText('3 selected')).toBeTruthy();
+      });
+
+      // Button should change to "None"
+      expect(screen.getByTestId('select-none-button')).toBeTruthy();
+    });
+
+    it('implements select none functionality', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add two tasks
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 1'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeTruthy();
+      });
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      // Select all
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-all-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('1 selected')).toBeTruthy();
+      });
+
+      // Press select none button
+      const selectNoneButton = screen.getByTestId('select-none-button');
+      await act(async () => {
+        fireEvent.press(selectNoneButton);
+      });
+
+      // No tasks should be selected
+      await waitFor(() => {
+        expect(screen.getByText('0 selected')).toBeTruthy();
+      });
+    });
+
+    it('bulk completes multiple tasks', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add two tasks
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 1'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeTruthy();
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 2'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 2')).toBeTruthy();
+      });
+
+      // Enter selection mode and select all
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-all-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('2 selected')).toBeTruthy();
+      });
+
+      // Press bulk complete button
+      const bulkCompleteButton = screen.getByTestId('bulk-complete-button');
+      await act(async () => {
+        fireEvent.press(bulkCompleteButton);
+      });
+
+      // Should exit selection mode and tasks should be completed
+      await waitFor(() => {
+        expect(screen.queryByTestId('cancel-selection-button')).toBeNull();
+      });
+
+      const task1 = screen.getByText('Task 1');
+      const task2 = screen.getByText('Task 2');
+      expect(hasStyleProperty(task1.props.style, 'opacity', 0.5)).toBe(true);
+      expect(hasStyleProperty(task2.props.style, 'opacity', 0.5)).toBe(true);
+    });
+
+    it('bulk uncompletes multiple tasks', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Completed task'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Completed task')).toBeTruthy();
+      });
+
+      // Complete the task normally
+      await act(async () => {
+        fireEvent.press(screen.getByText('Completed task'));
+      });
+
+      await waitFor(() => {
+        const completedTask = screen.getByText('Completed task');
+        expect(hasStyleProperty(completedTask.props.style, 'opacity', 0.5)).toBe(true);
+      });
+
+      // Enter selection mode and select the task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-all-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('1 selected')).toBeTruthy();
+      });
+
+      // Press bulk uncomplete button
+      const bulkUncompleteButton = screen.getByTestId('bulk-uncomplete-button');
+      await act(async () => {
+        fireEvent.press(bulkUncompleteButton);
+      });
+
+      // Task should be uncompleted
+      await waitFor(() => {
+        const task = screen.getByText('Completed task');
+        expect(hasStyleProperty(task.props.style, 'opacity', 0.5)).toBe(false);
+      });
+    });
+
+    it('bulk deletes multiple tasks', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add three tasks
+      for (let i = 1; i <= 3; i++) {
+        await act(async () => {
+          fireEvent.press(screen.getByTestId('add-button'));
+        });
+
+        await act(async () => {
+          fireEvent.changeText(
+            screen.getByPlaceholderText('What needs to be done?'),
+            `Task ${i}`
+          );
+        });
+
+        await act(async () => {
+          fireEvent.press(screen.getByText('Add'));
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(`Task ${i}`)).toBeTruthy();
+        });
+      }
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      // Select first two tasks
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId(`select-checkbox-${ids[0]}`));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId(`select-checkbox-${ids[1]}`));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('2 selected')).toBeTruthy();
+      });
+
+      // Press bulk delete button
+      const bulkDeleteButton = screen.getByTestId('bulk-delete-button');
+      await act(async () => {
+        fireEvent.press(bulkDeleteButton);
+      });
+
+      // First two tasks should be deleted
+      await waitFor(() => {
+        expect(screen.queryByText('Task 1')).toBeNull();
+        expect(screen.queryByText('Task 2')).toBeNull();
+      });
+
+      // Third task should still exist
+      expect(screen.getByText('Task 3')).toBeTruthy();
+    });
+
+    it('bulk moves multiple tasks to another list', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Create a second task list
+      const workList = {
+        id: 'work-123',
+        name: 'Work',
+        emoji: '💼',
+        color: '#4ECDC4',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'work-123']));
+      await AsyncStorage.setItem('tasklist-work-123', JSON.stringify(workList));
+
+      await simulateFocus();
+
+      // Add three tasks
+      for (let i = 1; i <= 3; i++) {
+        await act(async () => {
+          fireEvent.press(screen.getByTestId('add-button'));
+        });
+
+        await act(async () => {
+          fireEvent.changeText(
+            screen.getByPlaceholderText('What needs to be done?'),
+            `Task ${i}`
+          );
+        });
+
+        await act(async () => {
+          fireEvent.press(screen.getByText('Add'));
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(`Task ${i}`)).toBeTruthy();
+        });
+      }
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      // Select first two tasks
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId(`select-checkbox-${ids[0]}`));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId(`select-checkbox-${ids[1]}`));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('2 selected')).toBeTruthy();
+      });
+
+      // Press bulk move button
+      const bulkMoveButton = screen.getByTestId('bulk-move-button');
+      await act(async () => {
+        fireEvent.press(bulkMoveButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Move to List')).toBeTruthy();
+      });
+
+      // Select work list
+      const workListItem = screen.getByTestId('list-picker-item-work-123');
+      await act(async () => {
+        fireEvent.press(workListItem);
+      });
+
+      // First two tasks should be removed from view
+      await waitFor(() => {
+        expect(screen.queryByText('Task 1')).toBeNull();
+        expect(screen.queryByText('Task 2')).toBeNull();
+      });
+
+      // Third task should still be in default list
+      expect(screen.getByText('Task 3')).toBeTruthy();
+
+      // Verify tasks were moved to work list in storage
+      const workTaskIds = await AsyncStorage.getItem('tasklist-tasks-work-123');
+      const workIds = JSON.parse(workTaskIds!);
+      expect(workIds).toContain(ids[0]);
+      expect(workIds).toContain(ids[1]);
+      expect(workIds).not.toContain(ids[2]);
+    });
+
+    it('exits selection mode when cancel is pressed', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 1'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeTruthy();
+      });
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('cancel-selection-button')).toBeTruthy();
+      });
+
+      // Cancel selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('cancel-selection-button'));
+      });
+
+      // Should exit selection mode
+      await waitFor(() => {
+        expect(screen.queryByTestId('cancel-selection-button')).toBeNull();
+      });
+
+      // Should show normal buttons
+      expect(screen.getByTestId('select-button')).toBeTruthy();
+      expect(screen.getByTestId('add-button')).toBeTruthy();
+    });
+
+    it('hides bulk action buttons when no tasks are selected', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task 1'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task 1')).toBeTruthy();
+      });
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('0 selected')).toBeTruthy();
+      });
+
+      // Bulk action buttons should not be visible
+      expect(screen.queryByTestId('bulk-complete-button')).toBeNull();
+      expect(screen.queryByTestId('bulk-delete-button')).toBeNull();
+      expect(screen.queryByTestId('bulk-move-button')).toBeNull();
+    });
+  });
 });

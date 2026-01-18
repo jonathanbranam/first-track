@@ -18,7 +18,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
 import { Task } from '@/types/task';
 import { TaskList } from '@/types/task-list';
-import { moveTask } from '@/utils/task-operations';
+import { moveTask, moveTasks, deleteTasks, setTasksCompleted } from '@/utils/task-operations';
 
 export default function TasksScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -32,6 +32,9 @@ export default function TasksScreen() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [moveModalVisible, setMoveModalVisible] = useState(false);
   const [taskToMove, setTaskToMove] = useState<Task | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [bulkMoveModalVisible, setBulkMoveModalVisible] = useState(false);
   const colorScheme = useColorScheme() ?? 'light';
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
@@ -199,6 +202,90 @@ export default function TasksScreen() {
     }
   }, [taskToMove, selectedTaskList]);
 
+  // Selection handlers
+  const handleToggleSelectionMode = useCallback(() => {
+    setSelectionMode((prev) => !prev);
+    setSelectedTaskIds(new Set());
+  }, []);
+
+  const handleSelectionToggle = useCallback((taskId: string) => {
+    setSelectedTaskIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setSelectedTaskIds(new Set(tasks.map(t => t.id)));
+  }, [tasks]);
+
+  const handleSelectNone = useCallback(() => {
+    setSelectedTaskIds(new Set());
+  }, []);
+
+  // Bulk operation handlers
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedTaskIds.size === 0 || !selectedTaskList) return;
+
+    try {
+      const tasksToDelete = tasks.filter(t => selectedTaskIds.has(t.id));
+      await deleteTasks(tasksToDelete, selectedTaskList.id);
+
+      // Remove deleted tasks from local state
+      setTasks((prev) => prev.filter(t => !selectedTaskIds.has(t.id)));
+
+      // Exit selection mode
+      setSelectionMode(false);
+      setSelectedTaskIds(new Set());
+    } catch (error) {
+      console.error('Error deleting tasks:', error);
+    }
+  }, [selectedTaskIds, selectedTaskList, tasks]);
+
+  const handleBulkComplete = useCallback(async (completed: boolean) => {
+    if (selectedTaskIds.size === 0 || !selectedTaskList) return;
+
+    try {
+      const tasksToUpdate = tasks.filter(t => selectedTaskIds.has(t.id));
+      await setTasksCompleted(tasksToUpdate, selectedTaskList.id, completed);
+
+      // Update local state
+      setTasks((prev) =>
+        prev.map(t => selectedTaskIds.has(t.id) ? { ...t, completed } : t)
+      );
+
+      // Exit selection mode
+      setSelectionMode(false);
+      setSelectedTaskIds(new Set());
+    } catch (error) {
+      console.error('Error updating tasks:', error);
+    }
+  }, [selectedTaskIds, selectedTaskList, tasks]);
+
+  const handleBulkMoveToList = useCallback(async (destinationListId: string) => {
+    if (selectedTaskIds.size === 0 || !selectedTaskList) return;
+
+    try {
+      const tasksToMove = tasks.filter(t => selectedTaskIds.has(t.id));
+      await moveTasks(tasksToMove, selectedTaskList.id, destinationListId);
+
+      // Remove moved tasks from local state
+      setTasks((prev) => prev.filter(t => !selectedTaskIds.has(t.id)));
+
+      // Exit selection mode and close modal
+      setSelectionMode(false);
+      setSelectedTaskIds(new Set());
+      setBulkMoveModalVisible(false);
+    } catch (error) {
+      console.error('Error moving tasks:', error);
+    }
+  }, [selectedTaskIds, selectedTaskList, tasks]);
+
   const renderTask = useCallback((params: any) => (
     <TaskItem
       {...params}
@@ -207,8 +294,11 @@ export default function TasksScreen() {
       onInfoPress={handleInfoPress}
       onMovePress={handleMovePress}
       swipeableRef={handleSwipeableRef}
+      selectionMode={selectionMode}
+      isSelected={selectedTaskIds.has(params.item.id)}
+      onSelectionToggle={handleSelectionToggle}
     />
-  ), [toggleTask, deleteTask, handleInfoPress, handleMovePress, handleSwipeableRef]);
+  ), [toggleTask, deleteTask, handleInfoPress, handleMovePress, handleSwipeableRef, selectionMode, selectedTaskIds, handleSelectionToggle]);
 
   return (
     <ThemedView style={styles.container}>
@@ -216,18 +306,35 @@ export default function TasksScreen() {
         <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
           Tasks
         </ThemedText>
-        <TouchableOpacity
-          testID="add-button"
-          style={[styles.addButton, { backgroundColor: colors.tint }]}
-          onPress={() => setModalVisible(true)}
-          activeOpacity={0.8}>
-          <IconSymbol
-            name="plus"
-            size={24}
-            color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
-            weight="bold"
-          />
-        </TouchableOpacity>
+        <ThemedView style={styles.headerButtons}>
+          {!selectionMode && (
+            <>
+              <TouchableOpacity
+                testID="select-button"
+                style={styles.selectButton}
+                onPress={handleToggleSelectionMode}
+                activeOpacity={0.8}>
+                <IconSymbol
+                  name="checklist"
+                  size={24}
+                  color={colors.tint}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="add-button"
+                style={[styles.addButton, { backgroundColor: colors.tint }]}
+                onPress={() => setModalVisible(true)}
+                activeOpacity={0.8}>
+                <IconSymbol
+                  name="plus"
+                  size={24}
+                  color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
+                  weight="bold"
+                />
+              </TouchableOpacity>
+            </>
+          )}
+        </ThemedView>
       </ThemedView>
 
       <TaskListDropdown
@@ -239,6 +346,85 @@ export default function TasksScreen() {
         iconColor={colors.icon}
         tintColor={colors.tint}
       />
+
+      {selectionMode && (
+        <ThemedView style={[styles.bulkActionToolbar, { borderBottomColor: colors.icon + '30' }]}>
+          <ThemedView style={styles.toolbarLeft}>
+            <TouchableOpacity
+              testID="cancel-selection-button"
+              style={styles.toolbarButton}
+              onPress={handleToggleSelectionMode}>
+              <IconSymbol name="xmark" size={20} color={colors.icon} />
+              <ThemedText style={styles.toolbarButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+            <ThemedText style={styles.selectedCount}>
+              {selectedTaskIds.size} selected
+            </ThemedText>
+          </ThemedView>
+          <ThemedView style={styles.toolbarRight}>
+            {selectedTaskIds.size === tasks.length ? (
+              <TouchableOpacity
+                testID="select-none-button"
+                style={styles.toolbarButton}
+                onPress={handleSelectNone}>
+                <ThemedText style={[styles.toolbarButtonText, { color: colors.tint }]}>
+                  None
+                </ThemedText>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                testID="select-all-button"
+                style={styles.toolbarButton}
+                onPress={handleSelectAll}>
+                <ThemedText style={[styles.toolbarButtonText, { color: colors.tint }]}>
+                  All
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+          </ThemedView>
+        </ThemedView>
+      )}
+
+      {selectionMode && selectedTaskIds.size > 0 && (
+        <ThemedView style={[styles.bulkActionsBar, { backgroundColor: colors.tint + '15', borderBottomColor: colors.icon + '30' }]}>
+          <TouchableOpacity
+            testID="bulk-complete-button"
+            style={styles.bulkActionButton}
+            onPress={() => handleBulkComplete(true)}>
+            <IconSymbol name="checkmark.circle" size={20} color={colors.tint} />
+            <ThemedText style={[styles.bulkActionText, { color: colors.tint }]}>
+              Complete
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="bulk-uncomplete-button"
+            style={styles.bulkActionButton}
+            onPress={() => handleBulkComplete(false)}>
+            <IconSymbol name="circle" size={20} color={colors.tint} />
+            <ThemedText style={[styles.bulkActionText, { color: colors.tint }]}>
+              Uncomplete
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="bulk-move-button"
+            style={styles.bulkActionButton}
+            onPress={() => setBulkMoveModalVisible(true)}>
+            <IconSymbol name="arrow.right.square" size={20} color={colors.tint} />
+            <ThemedText style={[styles.bulkActionText, { color: colors.tint }]}>
+              Move
+            </ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="bulk-delete-button"
+            style={styles.bulkActionButton}
+            onPress={handleBulkDelete}>
+            <IconSymbol name="trash" size={20} color="#ff3b30" />
+            <ThemedText style={[styles.bulkActionText, { color: '#ff3b30' }]}>
+              Delete
+            </ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      )}
 
       {tasks.length === 0 ? (
         <EmptyState iconColor={colors.icon} />
@@ -280,6 +466,14 @@ export default function TasksScreen() {
           setTaskToMove(null);
         }}
       />
+
+      <TaskListPickerModal
+        visible={bulkMoveModalVisible}
+        taskLists={taskLists}
+        currentListId={selectedTaskList?.id || ''}
+        onSelect={handleBulkMoveToList}
+        onClose={() => setBulkMoveModalVisible(false)}
+      />
     </ThemedView>
   );
 }
@@ -296,12 +490,73 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  selectButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   addButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  bulkActionToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  toolbarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  toolbarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toolbarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  toolbarButtonText: {
+    fontSize: 16,
+  },
+  selectedCount: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  bulkActionsBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  bulkActionButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+  },
+  bulkActionText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   listContent: {
     paddingRight: 20,

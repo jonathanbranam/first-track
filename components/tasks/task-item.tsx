@@ -14,9 +14,24 @@ interface TaskItemProps extends Omit<RenderItemParams<Task>, 'getIndex'> {
   onInfoPress: (task: Task) => void;
   onMovePress: (task: Task) => void;
   swipeableRef?: (ref: Swipeable | null, id: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onSelectionToggle?: (id: string) => void;
 }
 
-export function TaskItem({ item, drag, isActive, onToggle, onDelete, onInfoPress, onMovePress, swipeableRef }: TaskItemProps) {
+export function TaskItem({
+  item,
+  drag,
+  isActive,
+  onToggle,
+  onDelete,
+  onInfoPress,
+  onMovePress,
+  swipeableRef,
+  selectionMode = false,
+  isSelected = false,
+  onSelectionToggle
+}: TaskItemProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -35,35 +50,63 @@ export function TaskItem({ item, drag, isActive, onToggle, onDelete, onInfoPress
         ref={(ref) => swipeableRef?.(ref, item.id)}
         renderRightActions={renderRightActions}
         overshootRight={false}
-        enabled={!isActive}>
+        enabled={!isActive && !selectionMode}>
         <View
           style={[
             styles.taskItem,
             { backgroundColor: colors.background },
             isActive && styles.taskItemActive,
+            selectionMode && isSelected && { backgroundColor: colors.tint + '15' },
           ]}>
+          {selectionMode ? (
+            <TouchableOpacity
+              testID={`select-checkbox-${item.id}`}
+              style={styles.selectionCheckboxContainer}
+              onPress={() => onSelectionToggle?.(item.id)}
+              disabled={isActive}>
+              <View
+                style={[
+                  styles.selectionCheckbox,
+                  {
+                    borderColor: colors.icon,
+                    backgroundColor: isSelected ? colors.tint : 'transparent',
+                  },
+                ]}>
+                {isSelected && (
+                  <IconSymbol
+                    name="checkmark"
+                    size={14}
+                    color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
+                    weight="bold"
+                  />
+                )}
+              </View>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             style={styles.taskContent}
-            onPress={() => onToggle(item.id)}
+            onPress={() => selectionMode ? onSelectionToggle?.(item.id) : onToggle(item.id)}
             activeOpacity={0.7}
             disabled={isActive}>
-            <View
-              style={[
-                styles.checkbox,
-                {
-                  borderColor: colors.icon,
-                  backgroundColor: item.completed ? colors.tint : 'transparent',
-                },
-              ]}>
-              {item.completed && (
-                <IconSymbol
-                  name="checkmark"
-                  size={14}
-                  color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
-                  weight="bold"
-                />
-              )}
-            </View>
+            {!selectionMode && (
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: colors.icon,
+                    backgroundColor: item.completed ? colors.tint : 'transparent',
+                  },
+                ]}>
+                {item.completed && (
+                  <IconSymbol
+                    name="checkmark"
+                    size={14}
+                    color={colorScheme === 'light' ? '#fff' : Colors.dark.background}
+                    weight="bold"
+                  />
+                )}
+              </View>
+            )}
             <ThemedText
               style={[
                 styles.taskText,
@@ -75,35 +118,39 @@ export function TaskItem({ item, drag, isActive, onToggle, onDelete, onInfoPress
               {item.description}
             </ThemedText>
           </TouchableOpacity>
-          <TouchableOpacity
-            testID={`info-button-${item.id}`}
-            style={styles.infoButton}
-            onPress={() => onInfoPress(item)}
-            disabled={isActive}>
-            <IconSymbol
-              name="info.circle"
-              size={20}
-              color={item.notes ? colors.tint : colors.icon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            testID={`move-button-${item.id}`}
-            style={styles.moveButton}
-            onPress={() => onMovePress(item)}
-            disabled={isActive}>
-            <IconSymbol
-              name="arrow.right.square"
-              size={20}
-              color={colors.icon}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            testID={`drag-handle-${item.id}`}
-            style={styles.dragHandle}
-            onPressIn={drag}
-            disabled={isActive}>
-            <IconSymbol name="line.3.horizontal" size={20} color={colors.icon} />
-          </TouchableOpacity>
+          {!selectionMode && (
+            <>
+              <TouchableOpacity
+                testID={`info-button-${item.id}`}
+                style={styles.infoButton}
+                onPress={() => onInfoPress(item)}
+                disabled={isActive}>
+                <IconSymbol
+                  name="info.circle"
+                  size={20}
+                  color={item.notes ? colors.tint : colors.icon}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID={`move-button-${item.id}`}
+                style={styles.moveButton}
+                onPress={() => onMovePress(item)}
+                disabled={isActive}>
+                <IconSymbol
+                  name="arrow.right.square"
+                  size={20}
+                  color={colors.icon}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID={`drag-handle-${item.id}`}
+                style={styles.dragHandle}
+                onPressIn={drag}
+                disabled={isActive}>
+                <IconSymbol name="line.3.horizontal" size={20} color={colors.icon} />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </Swipeable>
     </ScaleDecorator>
@@ -168,5 +215,19 @@ const styles = StyleSheet.create({
   taskText: {
     flex: 1,
     fontSize: 16,
+  },
+  selectionCheckboxContainer: {
+    paddingLeft: 20,
+    paddingRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectionCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
