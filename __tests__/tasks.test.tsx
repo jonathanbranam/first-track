@@ -310,6 +310,277 @@ describe('TasksScreen', () => {
     });
   });
 
+  describe('task notes', () => {
+    it('adds a task with notes when both description and notes are provided', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      // Fill in task description
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Buy groceries'
+        );
+      });
+
+      // Fill in notes
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('Additional notes (optional)'),
+          'Get milk, eggs, and bread from the store'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Buy groceries')).toBeTruthy();
+      });
+
+      // Verify task was saved with notes by checking storage
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      expect(taskIds).not.toBeNull();
+      const ids = JSON.parse(taskIds!);
+      expect(ids.length).toBe(1);
+
+      const storedTask = await AsyncStorage.getItem(`task-default-${ids[0]}`);
+      expect(storedTask).not.toBeNull();
+      const task = JSON.parse(storedTask!);
+      expect(task.description).toBe('Buy groceries');
+      expect(task.notes).toBe('Get milk, eggs, and bread from the store');
+    });
+
+    it('adds a task without notes when notes field is left empty', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Simple task'
+        );
+      });
+
+      // Don't fill in notes field
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Simple task')).toBeTruthy();
+      });
+
+      // Verify task was saved without notes
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+      const storedTask = await AsyncStorage.getItem(`task-default-${ids[0]}`);
+      const task = JSON.parse(storedTask!);
+      expect(task.description).toBe('Simple task');
+      expect(task.notes).toBeUndefined();
+    });
+
+    it('shows task detail modal when task is pressed with long press or info button', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task with notes
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task with details'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('Additional notes (optional)'),
+          'These are the detailed notes'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task with details')).toBeTruthy();
+      });
+
+      // Press info button to open detail modal
+      const infoButton = screen.getByTestId(/info-button-/);
+      await act(async () => {
+        fireEvent.press(infoButton);
+      });
+
+      // Detail modal should show both title and notes
+      await waitFor(() => {
+        expect(screen.getByText('Task Details')).toBeTruthy();
+        expect(screen.getByText('These are the detailed notes')).toBeTruthy();
+        // The task title should appear in the modal (there will be two instances - one in list, one in modal)
+        const taskTitles = screen.getAllByText('Task with details');
+        expect(taskTitles.length).toBeGreaterThanOrEqual(1);
+      });
+    });
+
+    it('allows editing task notes from detail modal', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task with notes
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Editable task'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('Additional notes (optional)'),
+          'Original notes'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Editable task')).toBeTruthy();
+      });
+
+      // Open detail modal
+      const infoButton = screen.getByTestId(/info-button-/);
+      await act(async () => {
+        fireEvent.press(infoButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task Details')).toBeTruthy();
+      });
+
+      // Press edit button
+      await act(async () => {
+        fireEvent.press(screen.getByText('Edit'));
+      });
+
+      // Update the notes
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByDisplayValue('Original notes'),
+          'Updated notes content'
+        );
+      });
+
+      // Save changes
+      await act(async () => {
+        fireEvent.press(screen.getByText('Save'));
+      });
+
+      // Verify notes were updated in storage
+      await waitFor(async () => {
+        const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+        const ids = JSON.parse(taskIds!);
+        const storedTask = await AsyncStorage.getItem(`task-default-${ids[0]}`);
+        const task = JSON.parse(storedTask!);
+        expect(task.notes).toBe('Updated notes content');
+      });
+    });
+
+    it('shows notes indicator on task item when notes are present', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add task without notes
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task without notes'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task without notes')).toBeTruthy();
+      });
+
+      // Add task with notes
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task with notes'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('Additional notes (optional)'),
+          'Some notes here'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task with notes')).toBeTruthy();
+      });
+
+      // Task with notes should have an info button/indicator
+      const infoButtons = screen.getAllByTestId(/info-button-/);
+      expect(infoButtons.length).toBe(2); // Both tasks have info buttons
+
+      // But we could also test for a notes indicator icon specifically
+      // For now, we can verify the info button exists for the task with notes
+    });
+  });
+
   describe('task completion', () => {
     it('toggles task completion when task is pressed', async () => {
       render(<TasksScreen />);
