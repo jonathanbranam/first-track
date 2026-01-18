@@ -71,3 +71,41 @@ export async function moveTasks(
     await setStorageItem(`task-${destinationListId}`, task.id, task);
   }
 }
+
+/**
+ * Deletes multiple tasks (soft delete by setting deletedAt timestamp)
+ * @param tasks - Array of tasks to delete
+ * @param listId - The ID of the list containing the tasks
+ * @returns Promise that resolves when all tasks have been deleted
+ */
+export async function deleteTasks(
+  tasks: Task[],
+  listId: string
+): Promise<void> {
+  const now = Date.now();
+
+  // Update each task with deletedAt timestamp
+  for (const task of tasks) {
+    const updatedTask = { ...task, deletedAt: now };
+    await setStorageItem(`task-${listId}`, task.id, updatedTask);
+  }
+}
+
+/**
+ * Marks multiple tasks as completed or uncompleted
+ * @param tasks - Array of tasks to update
+ * @param listId - The ID of the list containing the tasks
+ * @param completed - Whether to mark tasks as completed or uncompleted
+ * @returns Promise that resolves when all tasks have been updated
+ */
+export async function setTasksCompleted(
+  tasks: Task[],
+  listId: string,
+  completed: boolean
+): Promise<void> {
+  // Update each task's completion status
+  for (const task of tasks) {
+    const updatedTask = { ...task, completed };
+    await setStorageItem(`task-${listId}`, task.id, updatedTask);
+  }
+}

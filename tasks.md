@@ -21,12 +21,12 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Add tests for task movement functionality
 
 ### 1.3 Bulk Operations
-- [ ] Add multi-select mode for tasks
-- [ ] Implement "Select All" / "Select None" actions
-- [ ] Create bulk move operation for multiple tasks
-- [ ] Add bulk delete operation
-- [ ] Add bulk complete/uncomplete operation
-- [ ] Update UI with bulk action toolbar
+- [x] Add multi-select mode for tasks
+- [x] Implement "Select All" / "Select None" actions
+- [x] Create bulk move operation for multiple tasks
+- [x] Add bulk delete operation
+- [x] Add bulk complete/uncomplete operation
+- [x] Update UI with bulk action toolbar
 
 ### 1.4 Backlog Management System
 - [ ] Create dedicated "Backlog" or "Someday" list type
