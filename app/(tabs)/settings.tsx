@@ -46,6 +46,8 @@ const COLORS = [
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  // Use background color for text/icons on tint-colored backgrounds (for contrast)
+  const tintContrastColor = colors.background;
 
   const {
     activities,
@@ -231,7 +233,7 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: colors.tint }]}
               onPress={openCreateForm}>
-              <IconSymbol name="plus" size={20} color="#fff" />
+              <IconSymbol name="plus" size={20} color={tintContrastColor} />
             </TouchableOpacity>
           </View>
 
@@ -265,7 +267,7 @@ export default function SettingsScreen() {
                   <TouchableOpacity
                     style={[styles.defaultButton, { backgroundColor: colors.tint }]}
                     onPress={handleCreateDefaults}>
-                    <Text style={styles.defaultButtonText}>Create Default Activities</Text>
+                    <Text style={[styles.defaultButtonText, { color: tintContrastColor }]}>Create Default Activities</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -327,7 +329,7 @@ export default function SettingsScreen() {
                       style={[
                         styles.categoryButtonText,
                         {
-                          color: formData.category === category ? '#fff' : colors.text,
+                          color: formData.category === category ? tintContrastColor : colors.text,
                         },
                       ]}>
                       {category}

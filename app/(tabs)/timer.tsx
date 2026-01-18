@@ -24,6 +24,8 @@ export default function TimerScreen() {
   const tintColor = useThemeColor({}, 'tint');
   const backgroundColor = useThemeColor({}, 'background');
   const borderColor = useThemeColor({}, 'icon');
+  // Use background color for text/icons on tint-colored backgrounds (for contrast)
+  const tintContrastColor = backgroundColor;
 
   // Load current activity details
   useEffect(() => {
@@ -86,7 +88,7 @@ export default function TimerScreen() {
             <ThemedText style={styles.title}>Activity Timer</ThemedText>
             {stackDepth > 0 && (
               <View style={[styles.stackBadge, { backgroundColor: tintColor }]}>
-                <ThemedText style={styles.stackBadgeText}>{stackDepth}</ThemedText>
+                <ThemedText style={[styles.stackBadgeText, { color: tintContrastColor }]}>{stackDepth}</ThemedText>
               </View>
             )}
           </View>
@@ -141,8 +143,8 @@ export default function TimerScreen() {
                   style={[styles.button, styles.resumeButton, { backgroundColor: tintColor }]}
                   onPress={handleResume}
                 >
-                  <IconSymbol name="play" size={24} color="#fff" />
-                  <ThemedText style={styles.buttonText}>Resume</ThemedText>
+                  <IconSymbol name="play" size={24} color={tintContrastColor} />
+                  <ThemedText style={[styles.buttonText, { color: tintContrastColor }]}>Resume</ThemedText>
                 </TouchableOpacity>
               )}
 
@@ -205,8 +207,8 @@ export default function TimerScreen() {
               onPress={() => setShowActivityPicker(true)}
               disabled={activitiesLoading || activeActivities.length === 0}
             >
-              <IconSymbol name="plus" size={24} color="#fff" />
-              <ThemedText style={styles.startButtonText}>Start Activity</ThemedText>
+              <IconSymbol name="plus" size={24} color={tintContrastColor} />
+              <ThemedText style={[styles.startButtonText, { color: tintContrastColor }]}>Start Activity</ThemedText>
             </TouchableOpacity>
 
             {!activitiesLoading && activeActivities.length === 0 && (
