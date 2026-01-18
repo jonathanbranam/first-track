@@ -54,13 +54,13 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Add data persistence with AsyncStorage
 
 ### 2.2 Behavior Configuration
-- [ ] Create Behaviors settings screen (under Settings)
-- [ ] Implement create/edit behavior form
-- [ ] Add behavior type selection (reps, duration, weight, count)
-- [ ] Add unit configuration (lbs, kg, minutes, reps, etc.)
-- [ ] Implement activate/deactivate behavior toggle
-- [ ] Add delete behavior with confirmation
-- [ ] Create default behaviors seed data
+- [x] Create Behaviors settings screen (under Settings)
+- [x] Implement create/edit behavior form
+- [x] Add behavior type selection (reps, duration, weight, count)
+- [x] Add unit configuration (lbs, kg, minutes, reps, etc.)
+- [x] Implement activate/deactivate behavior toggle
+- [x] Add delete behavior with confirmation
+- [x] Create default behaviors seed data
 
 ### 2.3 Quick-Log Interface
 - [ ] Design and implement quick-log modal/floating button
