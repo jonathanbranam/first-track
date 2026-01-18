@@ -35,6 +35,11 @@ const MAPPING = {
   'play.circle': 'play-circle-outline',
   'info.circle': 'info-outline',
   'arrow.right.square': 'move-to-inbox',
+  'plus.circle.fill': 'add-circle',
+  'chevron.down': 'keyboard-arrow-down',
+  'xmark': 'close',
+  'checkmark.circle': 'check-circle-outline',
+  'circle': 'radio-button-unchecked',
 } as IconMapping;
 
 /**

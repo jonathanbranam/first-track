@@ -4,9 +4,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import TimerScreen from '@/app/(tabs)/timer';
 import { useActivities, useActivitySession } from '@/hooks/use-activities';
 import { Activity } from '@/types/activity';
+import { QuickLogProvider } from '@/contexts/quick-log-context';
 
 // Mock the hooks
 jest.mock('@/hooks/use-activities');
+
+// Helper to render component with QuickLogProvider
+const renderWithProviders = (component: React.ReactElement) => {
+  return render(
+    <QuickLogProvider>
+      {component}
+    </QuickLogProvider>
+  );
+};
 
 describe('TimerScreen', () => {
   const mockActivities: Activity[] = [
@@ -54,7 +64,7 @@ describe('TimerScreen', () => {
 
   describe('Empty State', () => {
     it('should display empty state when no active session', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('No Active Timer')).toBeTruthy();
       expect(getByText('Start tracking time on an activity')).toBeTruthy();
@@ -67,13 +77,13 @@ describe('TimerScreen', () => {
         loading: false,
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('No active activities. Create one in Settings.')).toBeTruthy();
     });
 
     it('should open activity picker when Start Activity is pressed', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       const startButton = getByText('Start Activity');
       fireEvent.press(startButton);
@@ -104,14 +114,14 @@ describe('TimerScreen', () => {
     });
 
     it('should display activity name and category', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Coding')).toBeTruthy();
       expect(getByText('Work')).toBeTruthy();
     });
 
     it('should display timer in running state', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Running')).toBeTruthy();
       expect(getByText('Pause')).toBeTruthy();
@@ -119,7 +129,7 @@ describe('TimerScreen', () => {
     });
 
     it('should call pauseActivity when Pause is pressed', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       const pauseButton = getByText('Pause');
       fireEvent.press(pauseButton);
@@ -128,7 +138,7 @@ describe('TimerScreen', () => {
     });
 
     it('should call stopActivity when Stop is pressed', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       const stopButton = getByText('Stop & Save');
       fireEvent.press(stopButton);
@@ -161,7 +171,7 @@ describe('TimerScreen', () => {
     });
 
     it('should display paused state', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Paused')).toBeTruthy();
       expect(getByText('Resume')).toBeTruthy();
@@ -169,7 +179,7 @@ describe('TimerScreen', () => {
     });
 
     it('should call resumeActivity when Resume is pressed', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       const resumeButton = getByText('Resume');
       fireEvent.press(resumeButton);
@@ -178,7 +188,7 @@ describe('TimerScreen', () => {
     });
 
     it('should call stopActivity when Stop is pressed while paused', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       const stopButton = getByText('Stop & Save');
       fireEvent.press(stopButton);
@@ -189,7 +199,7 @@ describe('TimerScreen', () => {
 
   describe('Activity Selection', () => {
     it('should start activity when selected from picker', () => {
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       // Open picker
       fireEvent.press(getByText('Start Activity'));
@@ -234,7 +244,7 @@ describe('TimerScreen', () => {
         stopActivity: mockStopActivity,
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Task')).toBeTruthy();
     });
@@ -271,7 +281,7 @@ describe('TimerScreen', () => {
         stopActivity: mockStopActivity,
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Task')).toBeTruthy();
       expect(getByText('Work')).toBeTruthy();
@@ -308,7 +318,7 @@ describe('TimerScreen', () => {
         resumeFromStack: jest.fn(),
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('1')).toBeTruthy(); // Stack badge with count
     });
@@ -334,7 +344,7 @@ describe('TimerScreen', () => {
         resumeFromStack: jest.fn(),
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Switch Activity')).toBeTruthy();
     });
@@ -368,7 +378,7 @@ describe('TimerScreen', () => {
         resumeFromStack: jest.fn(),
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Paused Activities (1)')).toBeTruthy();
       expect(getByText('Exercise')).toBeTruthy(); // activity-2 is Exercise
@@ -396,7 +406,7 @@ describe('TimerScreen', () => {
         resumeFromStack: jest.fn(),
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       // Click Switch Activity button
       fireEvent.press(getByText('Switch Activity'));
@@ -440,7 +450,7 @@ describe('TimerScreen', () => {
         resumeFromStack: mockResumeFromStack,
       });
 
-      const { getAllByText } = render(<TimerScreen />);
+      const { getAllByText } = renderWithProviders(<TimerScreen />);
 
       // Find and click the paused activity (Exercise appears twice: once in stack, once in picker)
       const exerciseButtons = getAllByText('Exercise');
@@ -486,7 +496,7 @@ describe('TimerScreen', () => {
         resumeFromStack: jest.fn(),
       });
 
-      const { getByText } = render(<TimerScreen />);
+      const { getByText } = renderWithProviders(<TimerScreen />);
 
       expect(getByText('Paused Activities (2)')).toBeTruthy();
       expect(getByText('2')).toBeTruthy(); // Stack badge

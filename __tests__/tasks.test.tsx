@@ -3,6 +3,7 @@ import { render, fireEvent, screen, waitFor, act } from '@testing-library/react-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import TasksScreen from '@/app/(tabs)/index';
+import { QuickLogProvider } from '@/contexts/quick-log-context';
 
 // Store the latest focus callback for manual triggering in tests
 let focusCallback: (() => void) | null = null;
@@ -49,6 +50,15 @@ const setupTaskLists = async () => {
   await AsyncStorage.setItem('tasklist-default', JSON.stringify(defaultList));
 };
 
+// Helper to render component with QuickLogProvider
+const renderWithProviders = (component: React.ReactElement) => {
+  return render(
+    <QuickLogProvider>
+      {component}
+    </QuickLogProvider>
+  );
+};
+
 describe('TasksScreen', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
@@ -68,7 +78,7 @@ describe('TasksScreen', () => {
 
   describe('rendering', () => {
     it('renders the title', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByText('Tasks')).toBeTruthy();
@@ -76,7 +86,7 @@ describe('TasksScreen', () => {
     });
 
     it('shows empty state when no tasks exist', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByText(/No tasks yet/)).toBeTruthy();
@@ -86,7 +96,7 @@ describe('TasksScreen', () => {
 
   describe('modal', () => {
     it('opens modal when add button is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -101,7 +111,7 @@ describe('TasksScreen', () => {
     });
 
     it('closes modal when Cancel is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -122,7 +132,7 @@ describe('TasksScreen', () => {
     });
 
     it('clears input and closes modal after adding a task', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -158,7 +168,7 @@ describe('TasksScreen', () => {
     });
 
     it('clears input when Cancel is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -190,7 +200,7 @@ describe('TasksScreen', () => {
 
   describe('adding tasks', () => {
     it('adds a task when description is entered and Add is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -218,7 +228,7 @@ describe('TasksScreen', () => {
     });
 
     it('does not add a task when description is empty', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -236,7 +246,7 @@ describe('TasksScreen', () => {
     });
 
     it('does not add a task when description is only whitespace', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -259,7 +269,7 @@ describe('TasksScreen', () => {
     });
 
     it('can add multiple tasks', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -312,7 +322,7 @@ describe('TasksScreen', () => {
 
   describe('task notes', () => {
     it('adds a task with notes when both description and notes are provided', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -360,7 +370,7 @@ describe('TasksScreen', () => {
     });
 
     it('adds a task without notes when notes field is left empty', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -397,7 +407,7 @@ describe('TasksScreen', () => {
     });
 
     it('shows task detail modal when task is pressed with long press or info button', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -447,7 +457,7 @@ describe('TasksScreen', () => {
     });
 
     it('allows editing task notes from detail modal', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -519,7 +529,7 @@ describe('TasksScreen', () => {
     });
 
     it('shows notes indicator on task item when notes are present', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -583,7 +593,7 @@ describe('TasksScreen', () => {
 
   describe('task completion', () => {
     it('toggles task completion when task is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -619,7 +629,7 @@ describe('TasksScreen', () => {
     });
 
     it('can toggle task back to incomplete', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -666,7 +676,7 @@ describe('TasksScreen', () => {
     });
 
     it('toggling one task does not affect other tasks', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -729,7 +739,7 @@ describe('TasksScreen', () => {
 
   describe('delete functionality', () => {
     it('removes task from list when delete action is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -773,7 +783,7 @@ describe('TasksScreen', () => {
     });
 
     it('sets deletedAt timestamp when task is deleted', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -822,7 +832,7 @@ describe('TasksScreen', () => {
     });
 
     it('deleting one task does not affect other tasks', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -885,7 +895,7 @@ describe('TasksScreen', () => {
     });
 
     it('does not show deleted tasks after reload', async () => {
-      const { unmount } = render(<TasksScreen />);
+      const { unmount } = renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -924,7 +934,7 @@ describe('TasksScreen', () => {
 
       // Unmount and remount to simulate reload
       unmount();
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -938,7 +948,7 @@ describe('TasksScreen', () => {
 
   describe('task list synchronization', () => {
     it('shows newly added task lists after returning to the screen', async () => {
-      const { unmount } = render(<TasksScreen />);
+      const { unmount } = renderWithProviders(<TasksScreen />);
 
       // Wait for initial render with default list
       await waitFor(() => {
@@ -958,7 +968,7 @@ describe('TasksScreen', () => {
 
       // Unmount and remount to simulate returning to the Tasks tab
       unmount();
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       // Wait for component to load
       await waitFor(() => {
@@ -978,7 +988,7 @@ describe('TasksScreen', () => {
 
     it('refreshes task lists when screen gains focus', async () => {
       // This test verifies that useFocusEffect triggers a refresh
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       // Wait for initial render
       await waitFor(() => {
@@ -1012,7 +1022,7 @@ describe('TasksScreen', () => {
 
   describe('task movement between lists', () => {
     it('shows move button for each task', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1044,7 +1054,7 @@ describe('TasksScreen', () => {
     });
 
     it('opens task list picker modal when move button is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1102,7 +1112,7 @@ describe('TasksScreen', () => {
     });
 
     it('moves task to selected list when list is picked', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1185,7 +1195,7 @@ describe('TasksScreen', () => {
     });
 
     it('preserves task notes and completion status when moving', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1274,7 +1284,7 @@ describe('TasksScreen', () => {
     });
 
     it('closes modal when Cancel is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1338,7 +1348,7 @@ describe('TasksScreen', () => {
     });
 
     it('shows empty message when no other lists available', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1381,7 +1391,7 @@ describe('TasksScreen', () => {
 
   describe('bulk operations', () => {
     it('enters selection mode when select button is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1421,7 +1431,7 @@ describe('TasksScreen', () => {
     });
 
     it('allows selecting and deselecting individual tasks', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1510,7 +1520,7 @@ describe('TasksScreen', () => {
     });
 
     it('implements select all functionality', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1563,7 +1573,7 @@ describe('TasksScreen', () => {
     });
 
     it('implements select none functionality', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1616,7 +1626,7 @@ describe('TasksScreen', () => {
     });
 
     it('bulk completes multiple tasks', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1692,7 +1702,7 @@ describe('TasksScreen', () => {
     });
 
     it('bulk uncompletes multiple tasks', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1755,7 +1765,7 @@ describe('TasksScreen', () => {
     });
 
     it('bulk deletes multiple tasks', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1821,7 +1831,7 @@ describe('TasksScreen', () => {
     });
 
     it('bulk moves multiple tasks to another list', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1916,7 +1926,7 @@ describe('TasksScreen', () => {
     });
 
     it('exits selection mode when cancel is pressed', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
@@ -1967,7 +1977,7 @@ describe('TasksScreen', () => {
     });
 
     it('hides bulk action buttons when no tasks are selected', async () => {
-      render(<TasksScreen />);
+      renderWithProviders(<TasksScreen />);
 
       await waitFor(() => {
         expect(screen.getByTestId('add-button')).toBeTruthy();
