@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useActivities } from '@/hooks/use-activities';
+import { useBehaviors } from '@/hooks/use-behaviors';
 import { Activity } from '@/types/activity';
+import { Behavior, BehaviorType } from '@/types/behavior';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -20,6 +22,12 @@ interface ActivityFormData {
   name: string;
   category: string;
   color: string;
+}
+
+interface BehaviorFormData {
+  name: string;
+  type: BehaviorType;
+  units: string;
 }
 
 const CATEGORIES = [
@@ -43,6 +51,20 @@ const COLORS = [
   '#85C1E2', // Light Blue
 ];
 
+const BEHAVIOR_TYPES: { value: BehaviorType; label: string; description: string }[] = [
+  { value: 'reps', label: 'Reps', description: 'Count repetitions (pushups, situps)' },
+  { value: 'duration', label: 'Duration', description: 'Track time (meditation, running)' },
+  { value: 'weight', label: 'Weight', description: 'Track weight/resistance (curls, bench press)' },
+  { value: 'count', label: 'Count', description: 'Simple counting (glasses of water)' },
+];
+
+const UNITS_BY_TYPE: Record<BehaviorType, string[]> = {
+  reps: ['reps', 'sets'],
+  duration: ['minutes', 'hours', 'seconds'],
+  weight: ['lbs', 'kg'],
+  count: ['glasses', 'servings', 'times'],
+};
+
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
@@ -62,12 +84,33 @@ export default function SettingsScreen() {
     createDefaultActivities,
   } = useActivities();
 
+  const {
+    behaviors,
+    activeBehaviors,
+    inactiveBehaviors,
+    loading: behaviorsLoading,
+    createBehavior,
+    updateBehavior,
+    deleteBehavior,
+    deactivateBehavior,
+    reactivateBehavior,
+    createDefaultBehaviors,
+  } = useBehaviors();
+
   const [showForm, setShowForm] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [formData, setFormData] = useState<ActivityFormData>({
     name: '',
     category: CATEGORIES[0],
     color: COLORS[0],
+  });
+
+  const [showBehaviorForm, setShowBehaviorForm] = useState(false);
+  const [editingBehavior, setEditingBehavior] = useState<Behavior | null>(null);
+  const [behaviorFormData, setBehaviorFormData] = useState<BehaviorFormData>({
+    name: '',
+    type: 'reps',
+    units: 'reps',
   });
 
   const handleCreateActivity = async () => {
@@ -180,6 +223,122 @@ export default function SettingsScreen() {
     );
   };
 
+  // Behavior handlers
+  const handleCreateBehavior = async () => {
+    if (!behaviorFormData.name.trim()) {
+      Alert.alert('Error', 'Behavior name is required');
+      return;
+    }
+
+    try {
+      await createBehavior({
+        name: behaviorFormData.name.trim(),
+        type: behaviorFormData.type,
+        units: behaviorFormData.units,
+        active: true,
+      });
+      setShowBehaviorForm(false);
+      setBehaviorFormData({ name: '', type: 'reps', units: 'reps' });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create behavior');
+    }
+  };
+
+  const handleUpdateBehavior = async () => {
+    if (!editingBehavior || !behaviorFormData.name.trim()) {
+      Alert.alert('Error', 'Behavior name is required');
+      return;
+    }
+
+    try {
+      await updateBehavior(editingBehavior.id, {
+        name: behaviorFormData.name.trim(),
+        type: behaviorFormData.type,
+        units: behaviorFormData.units,
+      });
+      setShowBehaviorForm(false);
+      setEditingBehavior(null);
+      setBehaviorFormData({ name: '', type: 'reps', units: 'reps' });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update behavior');
+    }
+  };
+
+  const handleDeleteBehavior = (behavior: Behavior) => {
+    Alert.alert(
+      'Delete Behavior',
+      `Are you sure you want to delete "${behavior.name}"? This will also delete all associated logs.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteBehavior(behavior.id),
+        },
+      ]
+    );
+  };
+
+  const handleToggleBehaviorActive = async (behavior: Behavior) => {
+    try {
+      if (behavior.active) {
+        await deactivateBehavior(behavior.id);
+      } else {
+        await reactivateBehavior(behavior.id);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update behavior status');
+    }
+  };
+
+  const openEditBehaviorForm = (behavior: Behavior) => {
+    setEditingBehavior(behavior);
+    setBehaviorFormData({
+      name: behavior.name,
+      type: behavior.type,
+      units: behavior.units,
+    });
+    setShowBehaviorForm(true);
+  };
+
+  const openCreateBehaviorForm = () => {
+    setEditingBehavior(null);
+    setBehaviorFormData({ name: '', type: 'reps', units: 'reps' });
+    setShowBehaviorForm(true);
+  };
+
+  const closeBehaviorForm = () => {
+    setShowBehaviorForm(false);
+    setEditingBehavior(null);
+    setBehaviorFormData({ name: '', type: 'reps', units: 'reps' });
+  };
+
+  const handleCreateDefaultBehaviors = () => {
+    Alert.alert(
+      'Create Default Behaviors',
+      'This will create 8 sample behaviors to help you get started. You can edit or delete them later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Create',
+          onPress: async () => {
+            try {
+              await createDefaultBehaviors();
+              Alert.alert('Success', 'Default behaviors created!');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to create default behaviors');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBehaviorTypeChange = (type: BehaviorType) => {
+    const defaultUnits = UNITS_BY_TYPE[type][0];
+    setBehaviorFormData({ ...behaviorFormData, type, units: defaultUnits });
+  };
+
   const renderActivity = (activity: Activity) => (
     <View
       key={activity.id}
@@ -219,6 +378,48 @@ export default function SettingsScreen() {
       </View>
     </View>
   );
+
+  const renderBehavior = (behavior: Behavior) => {
+    const typeLabel = BEHAVIOR_TYPES.find((t) => t.value === behavior.type)?.label || behavior.type;
+    return (
+      <View
+        key={behavior.id}
+        style={[
+          styles.activityItem,
+          { backgroundColor: colors.background, borderColor: colors.border },
+        ]}>
+        <View style={styles.activityInfo}>
+          <View style={styles.activityDetails}>
+            <Text style={[styles.activityName, { color: colors.text }]}>
+              {behavior.name}
+            </Text>
+            <Text style={[styles.activityCategory, { color: colors.icon }]}>
+              {typeLabel} • {behavior.units}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.activityActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleToggleBehaviorActive(behavior)}>
+            <Text style={[styles.actionButtonText, { color: behavior.active ? colors.tint : '#999' }]}>
+              {behavior.active ? 'Active' : 'Inactive'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openEditBehaviorForm(behavior)}>
+            <IconSymbol name="pencil" size={20} color={colors.tint} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleDeleteBehavior(behavior)}>
+            <IconSymbol name="trash" size={20} color="#FF6B6B" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -268,6 +469,54 @@ export default function SettingsScreen() {
                     style={[styles.defaultButton, { backgroundColor: colors.tint }]}
                     onPress={handleCreateDefaults}>
                     <Text style={[styles.defaultButtonText, { color: tintContrastColor }]}>Create Default Activities</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        <View style={[styles.section, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Behaviors</Text>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: colors.tint }]}
+              onPress={openCreateBehaviorForm}>
+              <IconSymbol name="plus" size={20} color={tintContrastColor} />
+            </TouchableOpacity>
+          </View>
+
+          {behaviorsLoading ? (
+            <Text style={[styles.loadingText, { color: colors.icon }]}>Loading...</Text>
+          ) : (
+            <>
+              {activeBehaviors.length > 0 && (
+                <>
+                  <Text style={[styles.subsectionTitle, { color: colors.icon }]}>
+                    Active Behaviors
+                  </Text>
+                  {activeBehaviors.map(renderBehavior)}
+                </>
+              )}
+
+              {inactiveBehaviors.length > 0 && (
+                <>
+                  <Text style={[styles.subsectionTitle, { color: colors.icon, marginTop: 20 }]}>
+                    Inactive Behaviors
+                  </Text>
+                  {inactiveBehaviors.map(renderBehavior)}
+                </>
+              )}
+
+              {behaviors.length === 0 && (
+                <View>
+                  <Text style={[styles.emptyText, { color: colors.icon }]}>
+                    No behaviors yet. Tap + to create one.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.defaultButton, { backgroundColor: colors.tint }]}
+                    onPress={handleCreateDefaultBehaviors}>
+                    <Text style={[styles.defaultButtonText, { color: tintContrastColor }]}>Create Default Behaviors</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -355,6 +604,110 @@ export default function SettingsScreen() {
                     ]}
                     onPress={() => setFormData({ ...formData, color })}
                   />
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal
+        visible={showBehaviorForm}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeBehaviorForm}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={closeBehaviorForm}>
+              <Text style={[styles.cancelButton, { color: colors.tint }]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {editingBehavior ? 'Edit Behavior' : 'New Behavior'}
+            </Text>
+            <TouchableOpacity
+              onPress={editingBehavior ? handleUpdateBehavior : handleCreateBehavior}>
+              <Text style={[styles.saveButton, { color: colors.tint }]}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Name</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+                ]}
+                value={behaviorFormData.name}
+                onChangeText={(text) => setBehaviorFormData({ ...behaviorFormData, name: text })}
+                placeholder="Enter behavior name"
+                placeholderTextColor={colors.icon}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Type</Text>
+              <View style={styles.categoryGrid}>
+                {BEHAVIOR_TYPES.map((type) => (
+                  <TouchableOpacity
+                    key={type.value}
+                    style={[
+                      styles.behaviorTypeButton,
+                      {
+                        backgroundColor:
+                          behaviorFormData.type === type.value ? colors.tint : colors.background,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => handleBehaviorTypeChange(type.value)}>
+                    <Text
+                      style={[
+                        styles.categoryButtonText,
+                        {
+                          color: behaviorFormData.type === type.value ? tintContrastColor : colors.text,
+                        },
+                      ]}>
+                      {type.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.behaviorTypeDescription,
+                        {
+                          color: behaviorFormData.type === type.value ? tintContrastColor : colors.icon,
+                        },
+                      ]}>
+                      {type.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Units</Text>
+              <View style={styles.categoryGrid}>
+                {UNITS_BY_TYPE[behaviorFormData.type].map((unit) => (
+                  <TouchableOpacity
+                    key={unit}
+                    style={[
+                      styles.categoryButton,
+                      {
+                        backgroundColor:
+                          behaviorFormData.units === unit ? colors.tint : colors.background,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    onPress={() => setBehaviorFormData({ ...behaviorFormData, units: unit })}>
+                    <Text
+                      style={[
+                        styles.categoryButtonText,
+                        {
+                          color: behaviorFormData.units === unit ? tintContrastColor : colors.text,
+                        },
+                      ]}>
+                      {unit}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
@@ -535,5 +888,16 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
+  },
+  behaviorTypeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    minWidth: '48%',
+  },
+  behaviorTypeDescription: {
+    fontSize: 12,
+    marginTop: 4,
   },
 });

@@ -27,6 +27,7 @@ export function IconSymbol({
         },
         style,
       ]}
+      testID={`icon-${name}`}
     />
   );
 }
