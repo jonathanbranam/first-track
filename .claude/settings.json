@@ -1,5 +1,15 @@
 {
   "hooks": {
-    "sessionStart": "npm install"
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm install"
+          }
+        ]
+      }
+    ]
   }
 }
