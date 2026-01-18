@@ -1009,4 +1009,373 @@ describe('TasksScreen', () => {
       });
     });
   });
+
+  describe('task movement between lists', () => {
+    it('shows move button for each task', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task to move'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task to move')).toBeTruthy();
+      });
+
+      // Move button should be present
+      const moveButton = screen.getByTestId(/move-button-/);
+      expect(moveButton).toBeTruthy();
+    });
+
+    it('opens task list picker modal when move button is pressed', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Create a second task list
+      const workList = {
+        id: 'work-123',
+        name: 'Work',
+        emoji: '💼',
+        color: '#4ECDC4',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'work-123']));
+      await AsyncStorage.setItem('tasklist-work-123', JSON.stringify(workList));
+
+      // Refresh to load the new list
+      await simulateFocus();
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task to move'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task to move')).toBeTruthy();
+      });
+
+      // Press move button
+      const moveButton = screen.getByTestId(/move-button-/);
+      await act(async () => {
+        fireEvent.press(moveButton);
+      });
+
+      // Modal should open with title
+      await waitFor(() => {
+        expect(screen.getByText('Move to List')).toBeTruthy();
+      });
+
+      // Should show the Work list
+      expect(screen.getByTestId('list-picker-item-work-123')).toBeTruthy();
+
+      // Should not show Default list as a picker item (it's the current list)
+      expect(screen.queryByTestId('list-picker-item-default')).toBeNull();
+    });
+
+    it('moves task to selected list when list is picked', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Create a second task list
+      const workList = {
+        id: 'work-123',
+        name: 'Work',
+        emoji: '💼',
+        color: '#4ECDC4',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'work-123']));
+      await AsyncStorage.setItem('tasklist-work-123', JSON.stringify(workList));
+
+      // Refresh to load the new list
+      await simulateFocus();
+
+      // Add a task to the default list
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Move me to work'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Move me to work')).toBeTruthy();
+      });
+
+      // Get the task ID before moving
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+      const taskId = ids[0];
+
+      // Press move button
+      const moveButton = screen.getByTestId(/move-button-/);
+      await act(async () => {
+        fireEvent.press(moveButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Move to List')).toBeTruthy();
+      });
+
+      // Select the Work list
+      const workListItem = screen.getByTestId('list-picker-item-work-123');
+      await act(async () => {
+        fireEvent.press(workListItem);
+      });
+
+      // Task should be removed from default list's view
+      await waitFor(() => {
+        expect(screen.queryByText('Move me to work')).toBeNull();
+      });
+
+      // Verify task was removed from default list in storage
+      const updatedDefaultTaskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const updatedDefaultIds = JSON.parse(updatedDefaultTaskIds!);
+      expect(updatedDefaultIds).not.toContain(taskId);
+
+      // Verify task was added to work list in storage
+      const workTaskIds = await AsyncStorage.getItem('tasklist-tasks-work-123');
+      const workIds = JSON.parse(workTaskIds!);
+      expect(workIds).toContain(taskId);
+
+      // Verify task data exists in work list storage
+      const movedTask = await AsyncStorage.getItem(`task-work-123-${taskId}`);
+      expect(movedTask).not.toBeNull();
+      const task = JSON.parse(movedTask!);
+      expect(task.description).toBe('Move me to work');
+    });
+
+    it('preserves task notes and completion status when moving', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Create a second task list
+      const personalList = {
+        id: 'personal-456',
+        name: 'Personal',
+        emoji: '🏠',
+        color: '#96CEB4',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'personal-456']));
+      await AsyncStorage.setItem('tasklist-personal-456', JSON.stringify(personalList));
+
+      await simulateFocus();
+
+      // Add a task with notes and mark it complete
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task with data'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('Additional notes (optional)'),
+          'Important notes here'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task with data')).toBeTruthy();
+      });
+
+      // Complete the task
+      await act(async () => {
+        fireEvent.press(screen.getByText('Task with data'));
+      });
+
+      await waitFor(() => {
+        const completedTask = screen.getByText('Task with data');
+        expect(hasStyleProperty(completedTask.props.style, 'opacity', 0.5)).toBe(true);
+      });
+
+      // Get the task ID
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+      const taskId = ids[0];
+
+      // Move the task
+      const moveButton = screen.getByTestId(/move-button-/);
+      await act(async () => {
+        fireEvent.press(moveButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Move to List')).toBeTruthy();
+      });
+
+      const personalListItem = screen.getByTestId('list-picker-item-personal-456');
+      await act(async () => {
+        fireEvent.press(personalListItem);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Task with data')).toBeNull();
+      });
+
+      // Verify the moved task has all its original data
+      const movedTask = await AsyncStorage.getItem(`task-personal-456-${taskId}`);
+      expect(movedTask).not.toBeNull();
+      const task = JSON.parse(movedTask!);
+      expect(task.description).toBe('Task with data');
+      expect(task.notes).toBe('Important notes here');
+      expect(task.completed).toBe(true);
+    });
+
+    it('closes modal when Cancel is pressed', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Create a second task list
+      const workList = {
+        id: 'work-123',
+        name: 'Work',
+        emoji: '💼',
+        color: '#4ECDC4',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'work-123']));
+      await AsyncStorage.setItem('tasklist-work-123', JSON.stringify(workList));
+
+      await simulateFocus();
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task to maybe move'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task to maybe move')).toBeTruthy();
+      });
+
+      // Press move button
+      const moveButton = screen.getByTestId(/move-button-/);
+      await act(async () => {
+        fireEvent.press(moveButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Move to List')).toBeTruthy();
+      });
+
+      // Press Cancel
+      const cancelButton = screen.getByTestId('task-list-picker-cancel');
+      await act(async () => {
+        fireEvent.press(cancelButton);
+      });
+
+      // Modal should close
+      await waitFor(() => {
+        expect(screen.queryByText('Move to List')).toBeNull();
+      });
+
+      // Task should still be in the default list
+      expect(screen.getByText('Task to maybe move')).toBeTruthy();
+    });
+
+    it('shows empty message when no other lists available', async () => {
+      render(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task (only default list exists)
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Nowhere to move'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Nowhere to move')).toBeTruthy();
+      });
+
+      // Press move button
+      const moveButton = screen.getByTestId(/move-button-/);
+      await act(async () => {
+        fireEvent.press(moveButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Move to List')).toBeTruthy();
+      });
+
+      // Should show empty message
+      expect(screen.getByText('No other lists available')).toBeTruthy();
+    });
+  });
 });
