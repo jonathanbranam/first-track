@@ -47,11 +47,11 @@ This document lists all tasks required to implement the remaining features from 
 ## 2. Behavior & Habit Tracking - Complete Feature
 
 ### 2.1 Data Models & Storage
-- [ ] Design Behavior data model (name, type, units, active status)
-- [ ] Design BehaviorLog data model (behaviorId, timestamp, quantity, weight, notes)
-- [ ] Implement storage hooks for behaviors
-- [ ] Implement storage hooks for behavior logs
-- [ ] Add data persistence with AsyncStorage
+- [x] Design Behavior data model (name, type, units, active status)
+- [x] Design BehaviorLog data model (behaviorId, timestamp, quantity, weight, notes)
+- [x] Implement storage hooks for behaviors
+- [x] Implement storage hooks for behavior logs
+- [x] Add data persistence with AsyncStorage
 
 ### 2.2 Behavior Configuration
 - [ ] Create Behaviors settings screen (under Settings)
