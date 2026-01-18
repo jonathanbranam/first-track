@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/tasks/empty-state';
 import { TaskItem } from '@/components/tasks/task-item';
 import { TaskListDropdown } from '@/components/tasks/task-list-dropdown';
 import { TaskModal } from '@/components/tasks/task-modal';
+import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -21,9 +22,12 @@ export default function TasksScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskNotes, setNewTaskNotes] = useState('');
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
   const [selectedTaskList, setSelectedTaskList] = useState<TaskList | null>(null);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const colorScheme = useColorScheme() ?? 'light';
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
@@ -82,9 +86,11 @@ export default function TasksScreen() {
     const trimmed = newTaskDescription.trim();
     if (!trimmed || !selectedTaskList) return;
 
+    const trimmedNotes = newTaskNotes.trim();
     const newTask: Task = {
       id: Date.now().toString(),
       description: trimmed,
+      notes: trimmedNotes || undefined,
       completed: false,
     };
 
@@ -95,8 +101,9 @@ export default function TasksScreen() {
 
     setTasks((prev) => [...prev, newTask]);
     setNewTaskDescription('');
+    setNewTaskNotes('');
     setModalVisible(false);
-  }, [newTaskDescription, taskIds, saveTaskList, selectedTaskList]);
+  }, [newTaskDescription, newTaskNotes, taskIds, saveTaskList, selectedTaskList]);
 
   const toggleTask = useCallback(async (id: string) => {
     const task = tasks.find((t) => t.id === id);
@@ -124,6 +131,28 @@ export default function TasksScreen() {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }, [tasks, selectedTaskList]);
 
+  const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || !selectedTaskList) return;
+
+    const updatedTask = { ...task, ...updates };
+    await setStorageItem(`task-${selectedTaskList.id}`, taskId, updatedTask);
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? updatedTask : t))
+    );
+  }, [tasks, selectedTaskList]);
+
+  const handleInfoPress = useCallback((task: Task) => {
+    setSelectedTask(task);
+    setDetailModalVisible(true);
+  }, []);
+
+  const handleCloseDetailModal = useCallback(() => {
+    setDetailModalVisible(false);
+    setSelectedTask(null);
+  }, []);
+
   const handleDragEnd = useCallback(async ({ data }: { data: Task[] }) => {
     setTasks(data);
     const newTaskIds = data.map(task => task.id);
@@ -148,9 +177,10 @@ export default function TasksScreen() {
       {...params}
       onToggle={toggleTask}
       onDelete={deleteTask}
+      onInfoPress={handleInfoPress}
       swipeableRef={handleSwipeableRef}
     />
-  ), [toggleTask, deleteTask, handleSwipeableRef]);
+  ), [toggleTask, deleteTask, handleInfoPress, handleSwipeableRef]);
 
   return (
     <ThemedView style={styles.container}>
@@ -198,9 +228,18 @@ export default function TasksScreen() {
       <TaskModal
         visible={modalVisible}
         taskDescription={newTaskDescription}
+        taskNotes={newTaskNotes}
         onClose={() => setModalVisible(false)}
         onSave={addTask}
         onDescriptionChange={setNewTaskDescription}
+        onNotesChange={setNewTaskNotes}
+      />
+
+      <TaskDetailModal
+        visible={detailModalVisible}
+        task={selectedTask}
+        onClose={handleCloseDetailModal}
+        onSave={updateTask}
       />
     </ThemedView>
   );

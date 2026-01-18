@@ -7,23 +7,28 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 interface TaskModalProps {
   visible: boolean;
   taskDescription: string;
+  taskNotes: string;
   onClose: () => void;
   onSave: () => void;
   onDescriptionChange: (description: string) => void;
+  onNotesChange: (notes: string) => void;
 }
 
 export function TaskModal({
   visible,
   taskDescription,
+  taskNotes,
   onClose,
   onSave,
   onDescriptionChange,
+  onNotesChange,
 }: TaskModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
   const handleClose = () => {
     onDescriptionChange('');
+    onNotesChange('');
     onClose();
   };
 
@@ -53,7 +58,24 @@ export function TaskModal({
             value={taskDescription}
             onChangeText={onDescriptionChange}
             autoFocus
-            onSubmitEditing={onSave}
+            returnKeyType="next"
+          />
+          <TextInput
+            style={[
+              styles.input,
+              styles.notesInput,
+              {
+                borderColor: colors.icon,
+                color: colors.text,
+              },
+            ]}
+            placeholder="Additional notes (optional)"
+            placeholderTextColor={colors.icon}
+            value={taskNotes}
+            onChangeText={onNotesChange}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
           />
           <View style={styles.modalButtons}>
             <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={handleClose}>
@@ -100,6 +122,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     fontSize: 16,
+    marginBottom: 12,
+  },
+  notesInput: {
+    minHeight: 100,
     marginBottom: 20,
   },
   modalButtons: {

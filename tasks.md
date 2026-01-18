@@ -9,10 +9,10 @@ This document lists all tasks required to implement the remaining features from 
 ## 1. Task Management - Remaining Features
 
 ### 1.1 Task Details & Descriptions
-- [ ] Add notes/description field to Task data model (separate from title)
-- [ ] Create task detail view/modal to show full description
-- [ ] Add ability to edit task descriptions
-- [ ] Update UI to show task title vs description distinction
+- [x] Add notes/description field to Task data model (separate from title)
+- [x] Create task detail view/modal to show full description
+- [x] Add ability to edit task descriptions
+- [x] Update UI to show task title vs description distinction
 
 ### 1.2 Task Movement Between Lists
 - [ ] Implement drag-and-drop to move tasks between lists

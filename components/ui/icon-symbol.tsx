@@ -33,6 +33,7 @@ const MAPPING = {
   'timer': 'timer',
   'arrow.left.arrow.right': 'swap-horiz',
   'play.circle': 'play-circle-outline',
+  'info.circle': 'info-outline',
 } as IconMapping;
 
 /**
