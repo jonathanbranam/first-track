@@ -13,6 +13,7 @@ import { TaskListPickerModal } from '@/components/tasks/task-list-picker-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { QuickLogFAB } from '@/components/behaviors/quick-log-fab';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
@@ -474,6 +475,7 @@ export default function TasksScreen() {
         onSelect={handleBulkMoveToList}
         onClose={() => setBulkMoveModalVisible(false)}
       />
+      <QuickLogFAB />
     </ThemedView>
   );
 }

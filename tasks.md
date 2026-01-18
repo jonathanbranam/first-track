@@ -60,14 +60,14 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Create default behaviors seed data
 
 ### 2.3 Quick-Log Interface
-- [ ] Design and implement quick-log modal/floating button
-- [ ] Create behavior selection picker (active behaviors only)
-- [ ] Add quantity/reps input field
-- [ ] Add weight/resistance input field (conditional)
-- [ ] Have quick log auto populate with the previous settings
-- [ ] Implement instant save functionality
-- [ ] Add auto-close after logging
-- [ ] Make modal accessible from any screen
+- [x] Design and implement quick-log modal/floating button
+- [x] Create behavior selection picker (active behaviors only)
+- [x] Add quantity/reps input field
+- [x] Add weight/resistance input field (conditional)
+- [x] Have quick log auto populate with the previous settings
+- [x] Implement instant save functionality
+- [x] Add auto-close after logging
+- [x] Make modal accessible from any screen
 - [ ] Add keyboard shortcuts for fast entry (optional)
 
 ### 2.4 Behavior Tracking Screen

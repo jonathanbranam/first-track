@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { TimerDisplay } from '@/components/timer-display';
 import { ActivityPicker } from '@/components/activity-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { QuickLogFAB } from '@/components/behaviors/quick-log-fab';
 import { useActivities, useActivitySession } from '@/hooks/use-activities';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Activity } from '@/types/activity';
@@ -235,6 +236,7 @@ export default function TimerScreen() {
         onSelectActivity={handleSwitchActivity}
         onClose={() => setShowSwitchPicker(false)}
       />
+      <QuickLogFAB />
     </ThemedView>
   );
 }
