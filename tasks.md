@@ -29,12 +29,9 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Update UI with bulk action toolbar
 
 ### 1.4 Backlog Management System
-- [ ] Create dedicated "Backlog" or "Someday" list type
-- [ ] Add "Archive to Backlog" quick action for tasks
-- [ ] Implement backlog review screen
-- [ ] Add "Restore from Backlog" functionality
-- [ ] Update data model to distinguish backlog vs active lists
-- [ ] Add tests for backlog operations
+- [ ] Create dedicated "Someday" list type
+- [ ] Add "Archive to Someday" quick action for tasks
+- [ ] Add tests for someday operations
 
 ### 1.5 List Type Management
 - [ ] Add list type property (temporary vs permanent)
@@ -67,7 +64,7 @@ This document lists all tasks required to implement the remaining features from 
 - [ ] Create behavior selection picker (active behaviors only)
 - [ ] Add quantity/reps input field
 - [ ] Add weight/resistance input field (conditional)
-- [ ] Add time-of-day auto-capture
+- [ ] Have quick log auto populate with the previous settings
 - [ ] Implement instant save functionality
 - [ ] Add auto-close after logging
 - [ ] Make modal accessible from any screen
