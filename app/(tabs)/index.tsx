@@ -9,6 +9,7 @@ import { TaskItem } from '@/components/tasks/task-item';
 import { TaskListDropdown } from '@/components/tasks/task-list-dropdown';
 import { TaskModal } from '@/components/tasks/task-modal';
 import { TaskDetailModal } from '@/components/tasks/task-detail-modal';
+import { TaskListPickerModal } from '@/components/tasks/task-list-picker-modal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -17,6 +18,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
 import { Task } from '@/types/task';
 import { TaskList } from '@/types/task-list';
+import { moveTask } from '@/utils/task-operations';
 
 export default function TasksScreen() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -28,6 +30,8 @@ export default function TasksScreen() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [moveModalVisible, setMoveModalVisible] = useState(false);
+  const [taskToMove, setTaskToMove] = useState<Task | null>(null);
   const colorScheme = useColorScheme() ?? 'light';
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
@@ -172,15 +176,39 @@ export default function TasksScreen() {
     setDropdownVisible(false);
   }, []);
 
+  const handleMovePress = useCallback((task: Task) => {
+    setTaskToMove(task);
+    setMoveModalVisible(true);
+  }, []);
+
+  const handleMoveToList = useCallback(async (destinationListId: string) => {
+    if (!taskToMove || !selectedTaskList) return;
+
+    try {
+      // Move task to new list
+      await moveTask(taskToMove, selectedTaskList.id, destinationListId);
+
+      // Remove task from current list's local state
+      setTasks((prev) => prev.filter((t) => t.id !== taskToMove.id));
+
+      // Close modal and reset state
+      setMoveModalVisible(false);
+      setTaskToMove(null);
+    } catch (error) {
+      console.error('Error moving task:', error);
+    }
+  }, [taskToMove, selectedTaskList]);
+
   const renderTask = useCallback((params: any) => (
     <TaskItem
       {...params}
       onToggle={toggleTask}
       onDelete={deleteTask}
       onInfoPress={handleInfoPress}
+      onMovePress={handleMovePress}
       swipeableRef={handleSwipeableRef}
     />
-  ), [toggleTask, deleteTask, handleInfoPress, handleSwipeableRef]);
+  ), [toggleTask, deleteTask, handleInfoPress, handleMovePress, handleSwipeableRef]);
 
   return (
     <ThemedView style={styles.container}>
@@ -240,6 +268,17 @@ export default function TasksScreen() {
         task={selectedTask}
         onClose={handleCloseDetailModal}
         onSave={updateTask}
+      />
+
+      <TaskListPickerModal
+        visible={moveModalVisible}
+        taskLists={taskLists}
+        currentListId={selectedTaskList?.id || ''}
+        onSelect={handleMoveToList}
+        onClose={() => {
+          setMoveModalVisible(false);
+          setTaskToMove(null);
+        }}
       />
     </ThemedView>
   );

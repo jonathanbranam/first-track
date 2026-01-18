@@ -34,6 +34,7 @@ const MAPPING = {
   'arrow.left.arrow.right': 'swap-horiz',
   'play.circle': 'play-circle-outline',
   'info.circle': 'info-outline',
+  'arrow.right.square': 'move-to-inbox',
 } as IconMapping;
 
 /**

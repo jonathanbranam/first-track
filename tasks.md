@@ -15,10 +15,10 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Update UI to show task title vs description distinction
 
 ### 1.2 Task Movement Between Lists
-- [ ] Add "Move to..." button/menu in task options
-- [ ] Create task list picker modal for moving tasks
-- [ ] Update data models to handle task transfers
-- [ ] Add tests for task movement functionality
+- [x] Add "Move to..." button/menu in task options
+- [x] Create task list picker modal for moving tasks
+- [x] Update data models to handle task transfers
+- [x] Add tests for task movement functionality
 
 ### 1.3 Bulk Operations
 - [ ] Add multi-select mode for tasks

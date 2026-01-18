@@ -12,10 +12,11 @@ interface TaskItemProps extends Omit<RenderItemParams<Task>, 'getIndex'> {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onInfoPress: (task: Task) => void;
+  onMovePress: (task: Task) => void;
   swipeableRef?: (ref: Swipeable | null, id: string) => void;
 }
 
-export function TaskItem({ item, drag, isActive, onToggle, onDelete, onInfoPress, swipeableRef }: TaskItemProps) {
+export function TaskItem({ item, drag, isActive, onToggle, onDelete, onInfoPress, onMovePress, swipeableRef }: TaskItemProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
 
@@ -86,6 +87,17 @@ export function TaskItem({ item, drag, isActive, onToggle, onDelete, onInfoPress
             />
           </TouchableOpacity>
           <TouchableOpacity
+            testID={`move-button-${item.id}`}
+            style={styles.moveButton}
+            onPress={() => onMovePress(item)}
+            disabled={isActive}>
+            <IconSymbol
+              name="arrow.right.square"
+              size={20}
+              color={colors.icon}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
             testID={`drag-handle-${item.id}`}
             style={styles.dragHandle}
             onPressIn={drag}
@@ -120,6 +132,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  moveButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     justifyContent: 'center',
