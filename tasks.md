@@ -71,12 +71,12 @@ This document lists all tasks required to implement the remaining features from 
 - [ ] Add keyboard shortcuts for fast entry (optional)
 
 ### 2.4 Behavior Tracking Screen
-- [ ] Create main Behavior Tracking tab/screen
-- [ ] Display list of active behaviors
-- [ ] Show today's logged activities summary
-- [ ] Add quick-log buttons for each behavior
-- [ ] Display daily totals for each behavior
-- [ ] Add ability to view/edit today's logs
+- [x] Create main Behavior Tracking tab/screen
+- [x] Display list of active behaviors
+- [x] Show today's logged activities summary
+- [x] Add quick-log buttons for each behavior
+- [x] Display daily totals for each behavior
+- [x] Add ability to view/edit today's logs
 
 ### 2.5 Behavior History & Analytics
 - [ ] Create behavior history screen

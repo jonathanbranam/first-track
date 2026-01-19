@@ -40,6 +40,7 @@ const MAPPING = {
   'xmark': 'close',
   'checkmark.circle': 'check-circle-outline',
   'circle': 'radio-button-unchecked',
+  'chart.bar': 'bar-chart',
 } as IconMapping;
 
 /**
