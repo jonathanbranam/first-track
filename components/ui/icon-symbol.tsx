@@ -41,6 +41,9 @@ const MAPPING = {
   'checkmark.circle': 'check-circle-outline',
   'circle': 'radio-button-unchecked',
   'chart.bar': 'bar-chart',
+  'lightbulb': 'lightbulb-outline',
+  'checkmark.circle.fill': 'check-circle',
+  'archivebox': 'archive',
 } as IconMapping;
 
 /**

@@ -45,6 +45,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="reflect"
+        options={{
+          title: 'Reflect',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="lightbulb" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
