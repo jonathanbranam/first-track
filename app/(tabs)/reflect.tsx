@@ -7,7 +7,7 @@ import {
   Text,
   Alert,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -143,6 +143,12 @@ export default function ReflectScreen() {
           <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
             Daily Reflection
           </ThemedText>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => router.push('/reflection-history')}
+          >
+            <IconSymbol name="clock" size={24} color={colors.tint} />
+          </TouchableOpacity>
         </ThemedView>
         <ThemedView style={styles.loadingContainer}>
           <ThemedText style={styles.loadingText}>Loading...</ThemedText>
@@ -158,6 +164,12 @@ export default function ReflectScreen() {
           <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
             Daily Reflection
           </ThemedText>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => router.push('/reflection-history')}
+          >
+            <IconSymbol name="clock" size={24} color={colors.tint} />
+          </TouchableOpacity>
         </ThemedView>
         <ThemedView style={styles.emptyContainer}>
           <IconSymbol
@@ -182,6 +194,12 @@ export default function ReflectScreen() {
           <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
             Daily Reflection
           </ThemedText>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => router.push('/reflection-history')}
+          >
+            <IconSymbol name="clock" size={24} color={colors.tint} />
+          </TouchableOpacity>
         </ThemedView>
         <ThemedView style={styles.completedContainer}>
           <IconSymbol
@@ -222,6 +240,12 @@ export default function ReflectScreen() {
           <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
             Daily Reflection
           </ThemedText>
+          <TouchableOpacity
+            style={styles.historyButton}
+            onPress={() => router.push('/reflection-history')}
+          >
+            <IconSymbol name="clock" size={24} color={colors.tint} />
+          </TouchableOpacity>
         </ThemedView>
         <ThemedView style={styles.completionContainer}>
           <IconSymbol
@@ -247,6 +271,12 @@ export default function ReflectScreen() {
         <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
           Daily Reflection
         </ThemedText>
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => router.push('/reflection-history')}
+        >
+          <IconSymbol name="clock" size={24} color={colors.tint} />
+        </TouchableOpacity>
       </ThemedView>
 
       <ScrollView
@@ -329,8 +359,14 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  historyButton: {
+    padding: 4,
   },
   loadingContainer: {
     flex: 1,
