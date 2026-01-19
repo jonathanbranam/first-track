@@ -3,6 +3,11 @@
  */
 
 /**
+ * List type for categorizing task lists
+ */
+export type ListType = 'permanent' | 'temporary' | 'someday';
+
+/**
  * TaskList represents a collection/category of tasks
  */
 export interface TaskList {
@@ -10,6 +15,7 @@ export interface TaskList {
   name: string;
   emoji: string;
   color: string;
+  listType?: ListType; // Optional for backward compatibility with existing lists
 }
 
 /**

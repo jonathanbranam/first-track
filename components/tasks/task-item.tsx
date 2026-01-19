@@ -13,10 +13,12 @@ interface TaskItemProps extends Omit<RenderItemParams<Task>, 'getIndex'> {
   onDelete: (id: string) => void;
   onInfoPress: (task: Task) => void;
   onMovePress: (task: Task) => void;
+  onArchivePress?: (task: Task) => void;
   swipeableRef?: (ref: Swipeable | null, id: string) => void;
   selectionMode?: boolean;
   isSelected?: boolean;
   onSelectionToggle?: (id: string) => void;
+  isSomedayList?: boolean;
 }
 
 export function TaskItem({
@@ -27,10 +29,12 @@ export function TaskItem({
   onDelete,
   onInfoPress,
   onMovePress,
+  onArchivePress,
   swipeableRef,
   selectionMode = false,
   isSelected = false,
-  onSelectionToggle
+  onSelectionToggle,
+  isSomedayList = false
 }: TaskItemProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
@@ -131,6 +135,19 @@ export function TaskItem({
                   color={item.notes ? colors.tint : colors.icon}
                 />
               </TouchableOpacity>
+              {!isSomedayList && onArchivePress && (
+                <TouchableOpacity
+                  testID={`archive-button-${item.id}`}
+                  style={styles.archiveButton}
+                  onPress={() => onArchivePress(item)}
+                  disabled={isActive}>
+                  <IconSymbol
+                    name="archivebox"
+                    size={20}
+                    color={colors.icon}
+                  />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 testID={`move-button-${item.id}`}
                 style={styles.moveButton}
@@ -179,6 +196,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  archiveButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     justifyContent: 'center',

@@ -29,9 +29,9 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Update UI with bulk action toolbar
 
 ### 1.4 Backlog Management System
-- [ ] Create dedicated "Someday" list type
-- [ ] Add "Archive to Someday" quick action for tasks
-- [ ] Add tests for someday operations
+- [x] Create dedicated "Someday" list type
+- [x] Add "Archive to Someday" quick action for tasks
+- [x] Add tests for someday operations
 
 ### 1.5 List Type Management
 - [ ] Add list type property (temporary vs permanent)
