@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, TextInput, TouchableOpacity, View } from 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { TaskList } from '@/types/task-list';
+import { TaskList, ListType } from '@/types/task-list';
 
 import { ColorPicker } from './color-picker';
 import { EmojiPicker } from './emoji-picker';
@@ -14,11 +14,13 @@ interface TaskListModalProps {
   listName: string;
   selectedEmoji: string;
   selectedColor: string;
+  selectedListType?: ListType;
   onClose: () => void;
   onSave: () => void;
   onNameChange: (name: string) => void;
   onEmojiChange: (emoji: string) => void;
   onColorChange: (color: string) => void;
+  onListTypeChange?: (listType: ListType) => void;
 }
 
 export function TaskListModal({
@@ -27,14 +29,19 @@ export function TaskListModal({
   listName,
   selectedEmoji,
   selectedColor,
+  selectedListType = 'permanent',
   onClose,
   onSave,
   onNameChange,
   onEmojiChange,
   onColorChange,
+  onListTypeChange,
 }: TaskListModalProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
+
+  // Don't allow editing list type for default and someday lists
+  const canEditListType = editingList?.id !== 'default' && editingList?.id !== 'someday';
 
   return (
     <Modal
@@ -71,6 +78,46 @@ export function TaskListModal({
 
           <ThemedText style={styles.label}>Color</ThemedText>
           <ColorPicker selectedColor={selectedColor} onSelectColor={onColorChange} />
+
+          {(!editingList || canEditListType) && onListTypeChange && (
+            <>
+              <ThemedText style={styles.label}>List Type</ThemedText>
+              <View style={styles.listTypePicker}>
+                <TouchableOpacity
+                  style={[
+                    styles.listTypeButton,
+                    {
+                      borderColor: colors.icon,
+                      backgroundColor: selectedListType === 'permanent' ? colors.tint + '20' : 'transparent',
+                    },
+                  ]}
+                  onPress={() => onListTypeChange('permanent')}>
+                  <ThemedText style={[
+                    styles.listTypeText,
+                    selectedListType === 'permanent' && { color: colors.tint, fontWeight: '600' }
+                  ]}>
+                    Permanent
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.listTypeButton,
+                    {
+                      borderColor: colors.icon,
+                      backgroundColor: selectedListType === 'temporary' ? colors.tint + '20' : 'transparent',
+                    },
+                  ]}
+                  onPress={() => onListTypeChange('temporary')}>
+                  <ThemedText style={[
+                    styles.listTypeText,
+                    selectedListType === 'temporary' && { color: colors.tint, fontWeight: '600' }
+                  ]}>
+                    Temporary
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
 
           <View style={styles.modalButtons}>
             <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={onClose}>
@@ -141,5 +188,21 @@ const styles = StyleSheet.create({
   submitButton: {
     minWidth: 80,
     alignItems: 'center',
+  },
+  listTypePicker: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  listTypeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  listTypeText: {
+    fontSize: 14,
   },
 });

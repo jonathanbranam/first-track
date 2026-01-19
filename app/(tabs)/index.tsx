@@ -203,6 +203,20 @@ export default function TasksScreen() {
     }
   }, [taskToMove, selectedTaskList]);
 
+  const handleArchiveToSomeday = useCallback(async (task: Task) => {
+    if (!selectedTaskList) return;
+
+    try {
+      // Move task to someday list
+      await moveTask(task, selectedTaskList.id, 'someday');
+
+      // Remove task from current list's local state
+      setTasks((prev) => prev.filter((t) => t.id !== task.id));
+    } catch (error) {
+      console.error('Error archiving task:', error);
+    }
+  }, [selectedTaskList]);
+
   // Selection handlers
   const handleToggleSelectionMode = useCallback(() => {
     setSelectionMode((prev) => !prev);
@@ -287,6 +301,24 @@ export default function TasksScreen() {
     }
   }, [selectedTaskIds, selectedTaskList, tasks]);
 
+  const handleBulkArchiveToSomeday = useCallback(async () => {
+    if (selectedTaskIds.size === 0 || !selectedTaskList) return;
+
+    try {
+      const tasksToArchive = tasks.filter(t => selectedTaskIds.has(t.id));
+      await moveTasks(tasksToArchive, selectedTaskList.id, 'someday');
+
+      // Remove archived tasks from local state
+      setTasks((prev) => prev.filter(t => !selectedTaskIds.has(t.id)));
+
+      // Exit selection mode
+      setSelectionMode(false);
+      setSelectedTaskIds(new Set());
+    } catch (error) {
+      console.error('Error archiving tasks:', error);
+    }
+  }, [selectedTaskIds, selectedTaskList, tasks]);
+
   const renderTask = useCallback((params: any) => (
     <TaskItem
       {...params}
@@ -294,12 +326,14 @@ export default function TasksScreen() {
       onDelete={deleteTask}
       onInfoPress={handleInfoPress}
       onMovePress={handleMovePress}
+      onArchivePress={handleArchiveToSomeday}
       swipeableRef={handleSwipeableRef}
       selectionMode={selectionMode}
       isSelected={selectedTaskIds.has(params.item.id)}
       onSelectionToggle={handleSelectionToggle}
+      isSomedayList={selectedTaskList?.listType === 'someday'}
     />
-  ), [toggleTask, deleteTask, handleInfoPress, handleMovePress, handleSwipeableRef, selectionMode, selectedTaskIds, handleSelectionToggle]);
+  ), [toggleTask, deleteTask, handleInfoPress, handleMovePress, handleArchiveToSomeday, handleSwipeableRef, selectionMode, selectedTaskIds, handleSelectionToggle, selectedTaskList]);
 
   return (
     <ThemedView style={styles.container}>
@@ -406,6 +440,17 @@ export default function TasksScreen() {
               Uncomplete
             </ThemedText>
           </TouchableOpacity>
+          {selectedTaskList?.listType !== 'someday' && (
+            <TouchableOpacity
+              testID="bulk-archive-button"
+              style={styles.bulkActionButton}
+              onPress={handleBulkArchiveToSomeday}>
+              <IconSymbol name="archivebox" size={20} color={colors.tint} />
+              <ThemedText style={[styles.bulkActionText, { color: colors.tint }]}>
+                Archive
+              </ThemedText>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             testID="bulk-move-button"
             style={styles.bulkActionButton}

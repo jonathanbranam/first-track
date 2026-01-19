@@ -2018,4 +2018,324 @@ describe('TasksScreen', () => {
       expect(screen.queryByTestId('bulk-move-button')).toBeNull();
     });
   });
+
+  describe('someday archive operations', () => {
+    it('shows archive button for each task when not on someday list', async () => {
+      renderWithProviders(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Task to archive'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Task to archive')).toBeTruthy();
+      });
+
+      // Archive button should be present
+      const archiveButton = screen.getByTestId(/archive-button-/);
+      expect(archiveButton).toBeTruthy();
+    });
+
+    it('archives a task to someday list when archive button is pressed', async () => {
+      renderWithProviders(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Ensure someday list exists
+      const somedayList = {
+        id: 'someday',
+        name: 'Someday',
+        emoji: '📦',
+        color: '#DFE6E9',
+        listType: 'someday',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'someday']));
+      await AsyncStorage.setItem('tasklist-someday', JSON.stringify(somedayList));
+
+      await simulateFocus();
+
+      // Add a task to the default list
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Archive this task'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Archive this task')).toBeTruthy();
+      });
+
+      // Get the task ID before archiving
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+      const taskId = ids[0];
+
+      // Press archive button
+      const archiveButton = screen.getByTestId(/archive-button-/);
+      await act(async () => {
+        fireEvent.press(archiveButton);
+      });
+
+      // Task should be removed from default list's view
+      await waitFor(() => {
+        expect(screen.queryByText('Archive this task')).toBeNull();
+      });
+
+      // Verify task was removed from default list in storage
+      const updatedDefaultTaskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const updatedDefaultIds = JSON.parse(updatedDefaultTaskIds!);
+      expect(updatedDefaultIds).not.toContain(taskId);
+
+      // Verify task was added to someday list in storage
+      const somedayTaskIds = await AsyncStorage.getItem('tasklist-tasks-someday');
+      const somedayIds = JSON.parse(somedayTaskIds!);
+      expect(somedayIds).toContain(taskId);
+
+      // Verify task data exists in someday list storage
+      const archivedTask = await AsyncStorage.getItem(`task-someday-${taskId}`);
+      expect(archivedTask).not.toBeNull();
+      const task = JSON.parse(archivedTask!);
+      expect(task.description).toBe('Archive this task');
+    });
+
+    it('does not show archive button when viewing someday list', async () => {
+      renderWithProviders(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Ensure someday list exists with a task
+      const somedayList = {
+        id: 'someday',
+        name: 'Someday',
+        emoji: '📦',
+        color: '#DFE6E9',
+        listType: 'someday',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'someday']));
+      await AsyncStorage.setItem('tasklist-someday', JSON.stringify(somedayList));
+
+      await simulateFocus();
+
+      // Switch to someday list
+      await act(async () => {
+        fireEvent.press(screen.getByText('Default'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Someday')).toBeTruthy();
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Someday'));
+      });
+
+      // Add a task to someday list
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Someday task'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Someday task')).toBeTruthy();
+      });
+
+      // Archive button should not be present
+      expect(screen.queryByTestId(/archive-button-/)).toBeNull();
+    });
+
+    it('bulk archives multiple tasks to someday list', async () => {
+      renderWithProviders(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Ensure someday list exists
+      const somedayList = {
+        id: 'someday',
+        name: 'Someday',
+        emoji: '📦',
+        color: '#DFE6E9',
+        listType: 'someday',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'someday']));
+      await AsyncStorage.setItem('tasklist-someday', JSON.stringify(somedayList));
+
+      await simulateFocus();
+
+      // Add three tasks
+      for (let i = 1; i <= 3; i++) {
+        await act(async () => {
+          fireEvent.press(screen.getByTestId('add-button'));
+        });
+
+        await act(async () => {
+          fireEvent.changeText(
+            screen.getByPlaceholderText('What needs to be done?'),
+            `Task ${i}`
+          );
+        });
+
+        await act(async () => {
+          fireEvent.press(screen.getByText('Add'));
+        });
+
+        await waitFor(() => {
+          expect(screen.getByText(`Task ${i}`)).toBeTruthy();
+        });
+      }
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      // Select first two tasks
+      const taskIds = await AsyncStorage.getItem('tasklist-tasks-default');
+      const ids = JSON.parse(taskIds!);
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId(`select-checkbox-${ids[0]}`));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId(`select-checkbox-${ids[1]}`));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('2 selected')).toBeTruthy();
+      });
+
+      // Press bulk archive button
+      const bulkArchiveButton = screen.getByTestId('bulk-archive-button');
+      await act(async () => {
+        fireEvent.press(bulkArchiveButton);
+      });
+
+      // First two tasks should be removed from view
+      await waitFor(() => {
+        expect(screen.queryByText('Task 1')).toBeNull();
+        expect(screen.queryByText('Task 2')).toBeNull();
+      });
+
+      // Third task should still be in default list
+      expect(screen.getByText('Task 3')).toBeTruthy();
+
+      // Verify tasks were moved to someday list in storage
+      const somedayTaskIds = await AsyncStorage.getItem('tasklist-tasks-someday');
+      const somedayIds = JSON.parse(somedayTaskIds!);
+      expect(somedayIds).toContain(ids[0]);
+      expect(somedayIds).toContain(ids[1]);
+      expect(somedayIds).not.toContain(ids[2]);
+    });
+
+    it('does not show bulk archive button when viewing someday list', async () => {
+      renderWithProviders(<TasksScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('add-button')).toBeTruthy();
+      });
+
+      // Ensure someday list exists
+      const somedayList = {
+        id: 'someday',
+        name: 'Someday',
+        emoji: '📦',
+        color: '#DFE6E9',
+        listType: 'someday',
+      };
+      await AsyncStorage.setItem('tasklists-all', JSON.stringify(['default', 'someday']));
+      await AsyncStorage.setItem('tasklist-someday', JSON.stringify(somedayList));
+
+      await simulateFocus();
+
+      // Switch to someday list
+      await act(async () => {
+        fireEvent.press(screen.getByText('Default'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Someday')).toBeTruthy();
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Someday'));
+      });
+
+      // Add a task
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('add-button'));
+      });
+
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByPlaceholderText('What needs to be done?'),
+          'Someday task'
+        );
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByText('Add'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Someday task')).toBeTruthy();
+      });
+
+      // Enter selection mode
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-button'));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('select-all-button'));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('1 selected')).toBeTruthy();
+      });
+
+      // Bulk archive button should not be visible
+      expect(screen.queryByTestId('bulk-archive-button')).toBeNull();
+    });
+  });
 });

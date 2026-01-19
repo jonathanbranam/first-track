@@ -25,7 +25,19 @@ export function TaskListItem({ list, onEdit, onDelete, iconColor }: TaskListItem
         <View style={[styles.emojiContainer, { backgroundColor: list.color }]}>
           <ThemedText style={styles.emoji}>{list.emoji}</ThemedText>
         </View>
-        <ThemedText style={styles.listName}>{list.name}</ThemedText>
+        <View style={styles.listNameContainer}>
+          <ThemedText style={styles.listName}>{list.name}</ThemedText>
+          {list.listType && list.listType !== 'permanent' && (
+            <View style={[
+              styles.badge,
+              { backgroundColor: list.listType === 'someday' ? '#95a5a6' : '#3498db' }
+            ]}>
+              <ThemedText style={styles.badgeText}>
+                {list.listType === 'someday' ? 'Someday' : 'Temporary'}
+              </ThemedText>
+            </View>
+          )}
+        </View>
       </View>
       <View style={styles.listItemActions}>
         <TouchableOpacity
@@ -73,10 +85,25 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 24,
   },
+  listNameContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   listName: {
     fontSize: 18,
     fontWeight: '600',
-    flex: 1,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
   },
   listItemActions: {
     flexDirection: 'row',

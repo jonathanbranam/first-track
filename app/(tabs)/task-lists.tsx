@@ -9,7 +9,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
-import { TaskList, DEFAULT_COLORS } from '@/types/task-list';
+import { TaskList, DEFAULT_COLORS, ListType } from '@/types/task-list';
 
 export default function TaskListsScreen() {
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
@@ -18,15 +18,16 @@ export default function TaskListsScreen() {
   const [newListName, setNewListName] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('📝');
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLORS[0]);
+  const [selectedListType, setSelectedListType] = useState<ListType>('permanent');
   const colorScheme = useColorScheme() ?? 'light';
 
   const { data: taskListIds, loading, save: saveTaskListIds } = useStorage<string[]>('tasklists', 'all');
 
   const colors = Colors[colorScheme];
 
-  // Initialize default task list on first load
+  // Initialize default task list and someday list on first load
   useEffect(() => {
-    async function initializeDefaultList() {
+    async function initializeDefaultLists() {
       if (loading) return;
 
       if (!taskListIds || taskListIds.length === 0) {
@@ -35,14 +36,38 @@ export default function TaskListsScreen() {
           name: 'Default',
           emoji: '📝',
           color: DEFAULT_COLORS[0],
+          listType: 'permanent',
+        };
+
+        const somedayList: TaskList = {
+          id: 'someday',
+          name: 'Someday',
+          emoji: '📦',
+          color: DEFAULT_COLORS[5], // Light gray color
+          listType: 'someday',
         };
 
         await setStorageItem('tasklist', defaultList.id, defaultList);
-        await saveTaskListIds([defaultList.id]);
+        await setStorageItem('tasklist', somedayList.id, somedayList);
+        await saveTaskListIds([defaultList.id, somedayList.id]);
+      } else {
+        // Check if someday list exists, if not create it
+        const somedayExists = taskListIds.includes('someday');
+        if (!somedayExists) {
+          const somedayList: TaskList = {
+            id: 'someday',
+            name: 'Someday',
+            emoji: '📦',
+            color: DEFAULT_COLORS[5],
+            listType: 'someday',
+          };
+          await setStorageItem('tasklist', somedayList.id, somedayList);
+          await saveTaskListIds([...taskListIds, somedayList.id]);
+        }
       }
     }
 
-    initializeDefaultList();
+    initializeDefaultLists();
   }, [loading, taskListIds, saveTaskListIds]);
 
   useEffect(() => {
@@ -63,6 +88,7 @@ export default function TaskListsScreen() {
     setNewListName('');
     setSelectedEmoji('📝');
     setSelectedColor(DEFAULT_COLORS[0]);
+    setSelectedListType('permanent');
     setModalVisible(true);
   }, []);
 
@@ -71,6 +97,7 @@ export default function TaskListsScreen() {
     setNewListName(list.name);
     setSelectedEmoji(list.emoji);
     setSelectedColor(list.color);
+    setSelectedListType(list.listType || 'permanent');
     setModalVisible(true);
   }, []);
 
@@ -85,6 +112,7 @@ export default function TaskListsScreen() {
         name: trimmed,
         emoji: selectedEmoji,
         color: selectedColor,
+        listType: selectedListType,
       };
 
       await setStorageItem('tasklist', updatedList.id, updatedList);
@@ -98,6 +126,7 @@ export default function TaskListsScreen() {
         name: trimmed,
         emoji: selectedEmoji,
         color: selectedColor,
+        listType: selectedListType,
       };
 
       await setStorageItem('tasklist', newList.id, newList);
@@ -110,7 +139,7 @@ export default function TaskListsScreen() {
 
     setModalVisible(false);
     setNewListName('');
-  }, [newListName, selectedEmoji, selectedColor, editingList, taskListIds, saveTaskListIds]);
+  }, [newListName, selectedEmoji, selectedColor, selectedListType, editingList, taskListIds, saveTaskListIds]);
 
   const deleteTaskList = useCallback(async (id: string) => {
     // Don't allow deleting the default list
@@ -164,11 +193,13 @@ export default function TaskListsScreen() {
         listName={newListName}
         selectedEmoji={selectedEmoji}
         selectedColor={selectedColor}
+        selectedListType={selectedListType}
         onClose={handleCloseModal}
         onSave={saveTaskList}
         onNameChange={setNewListName}
         onEmojiChange={setSelectedEmoji}
         onColorChange={setSelectedColor}
+        onListTypeChange={setSelectedListType}
       />
     </ThemedView>
   );
