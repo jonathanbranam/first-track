@@ -183,21 +183,21 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Create default question templates
 
 ### 4.3 Daily Assessment Interface
-- [ ] Create Daily Reflection screen/tab
-- [ ] Design 0-10 rating scale component
-- [ ] Implement multi-question assessment flow
-- [ ] Add question text display
-- [ ] Create response submission handler
+- [x] Create Daily Reflection screen/tab
+- [x] Design 0-10 rating scale component
+- [x] Implement multi-question assessment flow
+- [x] Add question text display
+- [x] Create response submission handler
 - [ ] Add date selector for backdating responses (optional)
 - [ ] Implement "Skip" functionality
-- [ ] Add completion confirmation
+- [x] Add completion confirmation
 
 ### 4.4 End-of-Day Prompt
 - [ ] Add notification/reminder for daily reflection
 - [ ] Implement configurable reflection time setting
-- [ ] Add "Start Daily Reflection" from home screen
-- [ ] Show indicator if today's reflection not completed
-- [ ] Handle already-completed check
+- [x] Add "Start Daily Reflection" from home screen
+- [x] Show indicator if today's reflection not completed
+- [x] Handle already-completed check
 
 ### 4.5 Reflection History
 - [ ] Create reflection history screen

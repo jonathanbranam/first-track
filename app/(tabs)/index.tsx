@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import DraggableFlatList from 'react-native-draggable-flatlist';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { EmptyState } from '@/components/tasks/empty-state';
 import { TaskItem } from '@/components/tasks/task-item';
@@ -17,6 +17,7 @@ import { QuickLogFAB } from '@/components/behaviors/quick-log-fab';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useStorage, getStorageItem, setStorageItem } from '@/hooks/use-storage';
+import { useReflectionQuestions, useReflectionResponses } from '@/hooks/use-reflections';
 import { Task } from '@/types/task';
 import { TaskList } from '@/types/task-list';
 import { moveTask, moveTasks, deleteTasks, setTasksCompleted } from '@/utils/task-operations';
@@ -36,23 +37,59 @@ export default function TasksScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [bulkMoveModalVisible, setBulkMoveModalVisible] = useState(false);
+  const [reflectionCompleted, setReflectionCompleted] = useState(false);
   const colorScheme = useColorScheme() ?? 'light';
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
+  const router = useRouter();
 
   const { data: taskListIds, refresh: refreshTaskListIds } = useStorage<string[]>('tasklists', 'all');
   const { data: taskIds, loading, save: saveTaskList } = useStorage<string[]>(
     'tasklist-tasks',
     selectedTaskList?.id || 'default'
   );
+  const { activeQuestions } = useReflectionQuestions();
+  const { hasResponseForDate } = useReflectionResponses();
 
   const colors = Colors[colorScheme];
 
-  // Refresh task lists when screen gains focus (e.g., switching tabs)
+  // Get today's date at midnight
+  const getTodayMidnight = useCallback(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.getTime();
+  }, []);
+
+  // Check if today's reflection has been completed
+  const checkReflectionCompletion = useCallback(async () => {
+    if (activeQuestions.length === 0) {
+      setReflectionCompleted(true);
+      return;
+    }
+
+    const today = getTodayMidnight();
+    const completionChecks = await Promise.all(
+      activeQuestions.map(async (q) => {
+        const hasResponse = await hasResponseForDate(q.id, today);
+        return hasResponse;
+      })
+    );
+
+    const allCompleted = completionChecks.every(Boolean);
+    setReflectionCompleted(allCompleted);
+  }, [activeQuestions, hasResponseForDate, getTodayMidnight]);
+
+  // Refresh task lists and check reflection when screen gains focus
   useFocusEffect(
     useCallback(() => {
       refreshTaskListIds();
-    }, [refreshTaskListIds])
+      checkReflectionCompletion();
+    }, [refreshTaskListIds, checkReflectionCompletion])
   );
+
+  // Check reflection completion when active questions change
+  useEffect(() => {
+    checkReflectionCompletion();
+  }, [activeQuestions, checkReflectionCompletion]);
 
   // Load task lists
   useEffect(() => {
@@ -319,6 +356,10 @@ export default function TasksScreen() {
     }
   }, [selectedTaskIds, selectedTaskList, tasks]);
 
+  const handleStartReflection = useCallback(() => {
+    router.push('/(tabs)/reflect');
+  }, [router]);
+
   const renderTask = useCallback((params: any) => (
     <TaskItem
       {...params}
@@ -371,6 +412,25 @@ export default function TasksScreen() {
           )}
         </ThemedView>
       </ThemedView>
+
+      {!reflectionCompleted && activeQuestions.length > 0 && (
+        <TouchableOpacity
+          style={[styles.reflectionBanner, { backgroundColor: colors.tint + '20', borderColor: colors.tint }]}
+          onPress={handleStartReflection}
+          activeOpacity={0.8}
+        >
+          <IconSymbol name="lightbulb" size={24} color={colors.tint} />
+          <ThemedView style={styles.reflectionBannerContent}>
+            <ThemedText style={[styles.reflectionBannerTitle, { color: colors.tint }]}>
+              Daily Reflection
+            </ThemedText>
+            <ThemedText style={styles.reflectionBannerText}>
+              Complete today's reflection
+            </ThemedText>
+          </ThemedView>
+          <IconSymbol name="chevron.right" size={20} color={colors.tint} />
+        </TouchableOpacity>
+      )}
 
       <TaskListDropdown
         taskLists={taskLists}
@@ -607,5 +667,28 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingRight: 20,
+  },
+  reflectionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  reflectionBannerContent: {
+    flex: 1,
+  },
+  reflectionBannerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  reflectionBannerText: {
+    fontSize: 14,
+    opacity: 0.7,
   },
 });
