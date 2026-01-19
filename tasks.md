@@ -201,12 +201,12 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Handle already-completed check
 
 ### 4.5 Reflection History
-- [ ] Create reflection history screen
-- [ ] Display past responses by date
-- [ ] Show all questions answered each day
+- [x] Create reflection history screen
+- [x] Display past responses by date
+- [x] Show all questions answered each day
 - [ ] Add calendar view for response history (optional)
-- [ ] Implement edit past responses functionality
-- [ ] Add ability to fill missed days
+- [x] Implement edit past responses functionality
+- [x] Add ability to fill missed days
 
 ### 4.6 Reflection Analytics
 - [ ] Create analytics screen per question
