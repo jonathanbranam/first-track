@@ -44,6 +44,9 @@ const MAPPING = {
   'lightbulb': 'lightbulb-outline',
   'checkmark.circle.fill': 'check-circle',
   'archivebox': 'archive',
+  'calendar': 'calendar-today',
+  'magnifyingglass': 'search',
+  'xmark.circle.fill': 'cancel',
 } as IconMapping;
 
 /**

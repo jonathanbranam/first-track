@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { QuickLogFAB } from '@/components/behaviors/quick-log-fab';
+import { BehaviorHistoryModal } from '@/components/behaviors/behavior-history-modal';
 import { useBehaviors, useBehaviorLogs } from '@/hooks/use-behaviors';
 import { useQuickLog } from '@/contexts/quick-log-context';
 import { Colors } from '@/constants/theme';
@@ -23,6 +24,8 @@ export default function BehaviorsScreen() {
   const { activeBehaviors, loading: behaviorsLoading } = useBehaviors();
   const { logs, loading: logsLoading, deleteLog, getDailyTotal } = useBehaviorLogs();
   const { showQuickLog } = useQuickLog();
+
+  const [showHistory, setShowHistory] = useState(false);
 
   // Get today's date range
   const todayStart = useMemo(() => {
@@ -184,6 +187,15 @@ export default function BehaviorsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <ThemedText type="title">Behaviors</ThemedText>
+        {activeBehaviors.length > 0 && (
+          <TouchableOpacity
+            style={[styles.historyButton, { backgroundColor: colors.tint }]}
+            onPress={() => setShowHistory(true)}
+            testID="view-history-button">
+            <IconSymbol name="clock" size={20} color={tintContrastColor} />
+            <Text style={[styles.historyButtonText, { color: tintContrastColor }]}>History</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {activeBehaviors.length === 0 ? (
@@ -212,6 +224,7 @@ export default function BehaviorsScreen() {
       )}
 
       <QuickLogFAB />
+      <BehaviorHistoryModal visible={showHistory} onClose={() => setShowHistory(false)} />
     </SafeAreaView>
   );
 }
@@ -221,9 +234,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  historyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   content: {
     flex: 1,

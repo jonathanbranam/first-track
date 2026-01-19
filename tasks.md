@@ -79,20 +79,21 @@ This document lists all tasks required to implement the remaining features from 
 - [x] Add ability to view/edit today's logs
 
 ### 2.5 Behavior History & Analytics
-- [ ] Create behavior history screen
-- [ ] Implement date range selector
-- [ ] Display historical logs with filters
-- [ ] Calculate and show daily/weekly/monthly aggregates
+- [x] Create behavior history screen
+- [x] Implement date range selector
+- [x] Display historical logs with filters
+- [x] Calculate and show daily/weekly/monthly aggregates
 - [ ] Add basic trend visualization (charts optional)
-- [ ] Implement edit/delete past logs
-- [ ] Add search/filter by behavior type
+- [x] Implement edit/delete past logs
+- [x] Add search/filter by behavior type
 
 ### 2.6 Testing
-- [ ] Add unit tests for behavior data models
-- [ ] Add tests for behavior CRUD operations
-- [ ] Add tests for behavior logging
-- [ ] Add tests for daily total calculations
-- [ ] Add integration tests for quick-log flow
+- [x] Add unit tests for behavior data models
+- [x] Add tests for behavior CRUD operations
+- [x] Add tests for behavior logging
+- [x] Add tests for daily total calculations
+- [x] Add integration tests for quick-log flow
+- [x] Add comprehensive tests for behavior history and analytics
 
 ---
 
