@@ -12,8 +12,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useActivities } from '@/hooks/use-activities';
 import { useBehaviors } from '@/hooks/use-behaviors';
+import { useReflectionQuestions } from '@/hooks/use-reflections';
 import { Activity } from '@/types/activity';
 import { Behavior, BehaviorType } from '@/types/behavior';
+import { ReflectionQuestion } from '@/types/reflection';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -28,6 +30,10 @@ interface BehaviorFormData {
   name: string;
   type: BehaviorType;
   units: string;
+}
+
+interface ReflectionQuestionFormData {
+  text: string;
 }
 
 const CATEGORIES = [
@@ -97,6 +103,19 @@ export default function SettingsScreen() {
     createDefaultBehaviors,
   } = useBehaviors();
 
+  const {
+    questions,
+    activeQuestions,
+    inactiveQuestions,
+    loading: questionsLoading,
+    createQuestion,
+    updateQuestion,
+    deleteQuestion,
+    deactivateQuestion,
+    reactivateQuestion,
+    createDefaultQuestions,
+  } = useReflectionQuestions();
+
   const [showForm, setShowForm] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [formData, setFormData] = useState<ActivityFormData>({
@@ -111,6 +130,12 @@ export default function SettingsScreen() {
     name: '',
     type: 'reps',
     units: 'reps',
+  });
+
+  const [showQuestionForm, setShowQuestionForm] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<ReflectionQuestion | null>(null);
+  const [questionFormData, setQuestionFormData] = useState<ReflectionQuestionFormData>({
+    text: '',
   });
 
   const handleCreateActivity = async () => {
@@ -339,6 +364,110 @@ export default function SettingsScreen() {
     setBehaviorFormData({ ...behaviorFormData, type, units: defaultUnits });
   };
 
+  // Reflection question handlers
+  const handleCreateQuestion = async () => {
+    if (!questionFormData.text.trim()) {
+      Alert.alert('Error', 'Question text is required');
+      return;
+    }
+
+    try {
+      await createQuestion({
+        text: questionFormData.text.trim(),
+      });
+      setShowQuestionForm(false);
+      setQuestionFormData({ text: '' });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create reflection question');
+    }
+  };
+
+  const handleUpdateQuestion = async () => {
+    if (!editingQuestion || !questionFormData.text.trim()) {
+      Alert.alert('Error', 'Question text is required');
+      return;
+    }
+
+    try {
+      await updateQuestion(editingQuestion.id, {
+        text: questionFormData.text.trim(),
+      });
+      setShowQuestionForm(false);
+      setEditingQuestion(null);
+      setQuestionFormData({ text: '' });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update reflection question');
+    }
+  };
+
+  const handleDeleteQuestion = (question: ReflectionQuestion) => {
+    Alert.alert(
+      'Delete Reflection Question',
+      `Are you sure you want to delete this question? Historical responses will be preserved.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteQuestion(question.id),
+        },
+      ]
+    );
+  };
+
+  const handleToggleQuestionActive = async (question: ReflectionQuestion) => {
+    try {
+      if (question.active) {
+        await deactivateQuestion(question.id);
+      } else {
+        await reactivateQuestion(question.id);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update question status');
+    }
+  };
+
+  const openEditQuestionForm = (question: ReflectionQuestion) => {
+    setEditingQuestion(question);
+    setQuestionFormData({
+      text: question.text,
+    });
+    setShowQuestionForm(true);
+  };
+
+  const openCreateQuestionForm = () => {
+    setEditingQuestion(null);
+    setQuestionFormData({ text: '' });
+    setShowQuestionForm(true);
+  };
+
+  const closeQuestionForm = () => {
+    setShowQuestionForm(false);
+    setEditingQuestion(null);
+    setQuestionFormData({ text: '' });
+  };
+
+  const handleCreateDefaultQuestions = () => {
+    Alert.alert(
+      'Create Default Questions',
+      'This will create 6 sample reflection questions to help you get started. You can edit or delete them later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Create',
+          onPress: async () => {
+            try {
+              await createDefaultQuestions();
+              Alert.alert('Success', 'Default reflection questions created!');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to create default questions');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderActivity = (activity: Activity) => (
     <View
       key={activity.id}
@@ -414,6 +543,44 @@ export default function SettingsScreen() {
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => handleDeleteBehavior(behavior)}>
+            <IconSymbol name="trash" size={20} color="#FF6B6B" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderReflectionQuestion = (question: ReflectionQuestion) => {
+    return (
+      <View
+        key={question.id}
+        style={[
+          styles.activityItem,
+          { backgroundColor: colors.background, borderColor: colors.border },
+        ]}>
+        <View style={styles.activityInfo}>
+          <View style={styles.activityDetails}>
+            <Text style={[styles.activityName, { color: colors.text }]}>
+              {question.text}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.activityActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleToggleQuestionActive(question)}>
+            <Text style={[styles.actionButtonText, { color: question.active ? colors.tint : '#999' }]}>
+              {question.active ? 'Active' : 'Inactive'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openEditQuestionForm(question)}>
+            <IconSymbol name="pencil" size={20} color={colors.tint} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleDeleteQuestion(question)}>
             <IconSymbol name="trash" size={20} color="#FF6B6B" />
           </TouchableOpacity>
         </View>
@@ -517,6 +684,54 @@ export default function SettingsScreen() {
                     style={[styles.defaultButton, { backgroundColor: colors.tint }]}
                     onPress={handleCreateDefaultBehaviors}>
                     <Text style={[styles.defaultButtonText, { color: tintContrastColor }]}>Create Default Behaviors</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        <View style={[styles.section, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Reflection Questions</Text>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: colors.tint }]}
+              onPress={openCreateQuestionForm}>
+              <IconSymbol name="plus" size={20} color={tintContrastColor} />
+            </TouchableOpacity>
+          </View>
+
+          {questionsLoading ? (
+            <Text style={[styles.loadingText, { color: colors.icon }]}>Loading...</Text>
+          ) : (
+            <>
+              {activeQuestions.length > 0 && (
+                <>
+                  <Text style={[styles.subsectionTitle, { color: colors.icon }]}>
+                    Active Questions
+                  </Text>
+                  {activeQuestions.map(renderReflectionQuestion)}
+                </>
+              )}
+
+              {inactiveQuestions.length > 0 && (
+                <>
+                  <Text style={[styles.subsectionTitle, { color: colors.icon, marginTop: 20 }]}>
+                    Inactive Questions
+                  </Text>
+                  {inactiveQuestions.map(renderReflectionQuestion)}
+                </>
+              )}
+
+              {questions.length === 0 && (
+                <View>
+                  <Text style={[styles.emptyText, { color: colors.icon }]}>
+                    No reflection questions yet. Tap + to create one.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.defaultButton, { backgroundColor: colors.tint }]}
+                    onPress={handleCreateDefaultQuestions}>
+                    <Text style={[styles.defaultButtonText, { color: tintContrastColor }]}>Create Default Questions</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -714,6 +929,51 @@ export default function SettingsScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      <Modal
+        visible={showQuestionForm}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeQuestionForm}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={closeQuestionForm}>
+              <Text style={[styles.cancelButton, { color: colors.tint }]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {editingQuestion ? 'Edit Question' : 'New Question'}
+            </Text>
+            <TouchableOpacity
+              onPress={editingQuestion ? handleUpdateQuestion : handleCreateQuestion}>
+              <Text style={[styles.saveButton, { color: colors.tint }]}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, { color: colors.text }]}>Question</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.multilineInput,
+                  { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
+                ]}
+                value={questionFormData.text}
+                onChangeText={(text) => setQuestionFormData({ text })}
+                placeholder="Enter your reflection question (e.g., How productive was I today?)"
+                placeholderTextColor={colors.icon}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={[styles.helpText, { color: colors.icon }]}>
+                This question will be used in your daily reflections. Responses are rated on a 0-10 scale.
+              </Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -899,5 +1159,15 @@ const styles = StyleSheet.create({
   behaviorTypeDescription: {
     fontSize: 12,
     marginTop: 4,
+  },
+  multilineInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
+  helpText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
 });

@@ -167,20 +167,20 @@ This document lists all tasks required to implement the remaining features from 
 ## 4. Daily Reflection & Assessment - Complete Feature
 
 ### 4.1 Data Models & Storage
-- [ ] Design ReflectionQuestion data model (id, text, active, createdAt, deactivatedAt)
-- [ ] Design ReflectionResponse data model (questionId, date, score, timestamp)
-- [ ] Implement storage hooks for reflection questions
-- [ ] Implement storage hooks for reflection responses
-- [ ] Add data persistence with AsyncStorage
+- [x] Design ReflectionQuestion data model (id, text, active, createdAt, deactivatedAt)
+- [x] Design ReflectionResponse data model (questionId, date, score, timestamp)
+- [x] Implement storage hooks for reflection questions
+- [x] Implement storage hooks for reflection responses
+- [x] Add data persistence with AsyncStorage
 
 ### 4.2 Reflection Question Management
-- [ ] Create Reflection Questions settings screen
-- [ ] Implement create new question form
-- [ ] Add edit question functionality
-- [ ] Implement activate/deactivate question toggle
-- [ ] Add delete question with confirmation (preserves history)
-- [ ] Show list of all questions (active and inactive)
-- [ ] Create default question templates
+- [x] Create Reflection Questions settings screen
+- [x] Implement create new question form
+- [x] Add edit question functionality
+- [x] Implement activate/deactivate question toggle
+- [x] Add delete question with confirmation (preserves history)
+- [x] Show list of all questions (active and inactive)
+- [x] Create default question templates
 
 ### 4.3 Daily Assessment Interface
 - [ ] Create Daily Reflection screen/tab
