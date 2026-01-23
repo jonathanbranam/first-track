@@ -67,30 +67,56 @@ Support logging of various daily behaviors including:
 
 ## 3. Activity Timer & Time Tracking
 
-### 3.1 Activity Clock-In/Out
-- **Start Activity**: Mark the beginning of a task or project
-- **Running Timer**: Display elapsed time for current activity
-- **Clock Out**: End the current activity and save duration
-- **Separate Tracking**: Activity timer runs independently from task list
+### 3.1 Activity Type Configuration
+- **Activity Types in Settings**: Configure reusable activity types with name and color
+- **Type Library**: Build a personal library of activity types (e.g., "Deep Work", "Admin", "Email")
+- **Visual Identification**: Each type has a color for quick visual recognition
+- **No Required Pre-configuration**: Create types on-the-fly or use existing ones
 
-### 3.2 Activity Examples
+### 3.2 Activity Instance Creation
+- **Free-form Creation**: Start a new activity with custom title and description
+- **Title Field**: Brief name for this specific activity instance (e.g., "Q1 Planning")
+- **Description Field**: Optional detailed notes about what you're working on
+- **Type Selection**: Choose from configured activity types or create new type
+- **Timestamp Tracking**: Automatically record creation time and last active time
+
+### 3.3 Activity Instance Lifecycle
+- **Active State**: Activity appears on timer screen until explicitly marked complete
+- **Completion**: Mark activity complete when finished
+- **Same-Day Visibility**: Completed activities remain visible with different visual style until end of day
+- **End of Day**: Day boundary is 4:00 AM the following calendar day (supports night owls)
+- **Next Day Cleanup**: Completed activities from previous day don't appear on new day
+- **Restart Capability**: Completed activities can be restarted same day (reverts to incomplete state)
+
+### 3.4 Timer & Activity Switching
+- **Single Active Timer**: Only one activity can have a running timer at a time
+- **Auto-Pause on Switch**: Starting or resuming a different activity automatically pauses current timer
+- **Activity Display**: All incomplete and same-day completed activities shown on screen
+- **Display Sorting**:
+  - Primary sort: Incomplete activities first, then completed activities
+  - Secondary sort: Most recently active time (within each status group)
+- **Quick Resume**: Tap any paused activity to resume its timer
+- **Create While Active**: Can create new activity even when timer is running (auto-pauses current)
+
+### 3.5 Running Timer
+- **Elapsed Time Display**: Show HH:MM:SS for currently active timer
+- **Pause/Resume Controls**: Pause current activity without ending it
+- **Visual Indicators**: Clear visual distinction between active, paused, and completed states
+- **Pause Interval Tracking**: Record all pause/resume timestamps for accurate time tracking
+
+### 3.6 Activity Examples
+- Deep work session on specific project
 - Making dinner
-- Working on a project
-- Responding to emails
-- Any work or home activity
+- Email triage and responses
+- Meeting preparation
+- Any work or home activity requiring time tracking
 
-### 3.3 Pause & Resume
-- **Pause Current Activity**: Temporarily stop the timer without ending the activity
-- **Switch Activities**: Start a new activity while previous one is paused
-- **Resume Previous**: Return to the previous activity with its timer resuming
-- **Activity Stack**: Track interruptions and context switches
-- **Resume Correct Activity**: When done with interruption, return to the correct prior activity
-
-### 3.4 Time Logs
-- Save activity duration data
-- Review historical time logs
-- See how long activities typically take
-- Compare durations over time to identify patterns
+### 3.7 Time Logs & History
+- **Session Logging**: Each activity maintains complete log of all timer sessions
+- **Duration Calculation**: Total time excluding paused intervals
+- **Historical Review**: View past activity sessions and durations
+- **Multi-day Activities**: Same activity can span multiple days if not completed
+- **Pattern Analysis**: See how long similar activities typically take
 
 ---
 
