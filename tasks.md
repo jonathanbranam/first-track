@@ -388,6 +388,148 @@ This document lists all tasks required to implement the remaining features from 
 
 ---
 
+## 11. Activity Tracking Refinements (Section 3 Redesign)
+
+This section documents the refinements to activity tracking based on the updated requirements in app-feature-list.md section 3.
+
+### 11.1 Activity Type System
+
+#### Data Model Changes
+- [ ] Create new `ActivityType` interface (id, name, color, createdAt)
+- [ ] Add `useActivityTypes` hook for managing activity types
+- [ ] Implement storage layer for activity types (similar to behaviors)
+- [ ] Update `Activity` interface to remove category, add typeId reference
+- [ ] Add activity type CRUD operations (create, read, update, delete)
+
+#### Settings UI for Activity Types
+- [ ] Replace current activity configuration with activity type configuration
+- [ ] Create activity type list view in settings
+- [ ] Implement activity type form (name + color picker)
+- [ ] Add default activity types seed data
+- [ ] Add activate/deactivate for activity types (like behaviors)
+- [ ] Update tests for activity type management
+
+### 11.2 Activity Instance System
+
+#### Data Model Changes
+- [ ] Rename `Activity` to `ActivityInstance` for clarity
+- [ ] Add `title` field (free text, required)
+- [ ] Add `description` field (free text, optional)
+- [ ] Add `typeId` field (references ActivityType)
+- [ ] Add `completed` field (boolean)
+- [ ] Add `completedAt` field (timestamp, optional)
+- [ ] Add `lastActiveAt` field (timestamp for sorting)
+- [ ] Remove `active` and `deactivatedAt` fields (no longer needed)
+
+#### Storage Changes
+- [ ] Update storage keys for activity instances vs types
+- [ ] Migrate from `activities-all` to `activity-instances-all`
+- [ ] Update `useActivities` hook to `useActivityInstances`
+- [ ] Implement create instance with type selection
+- [ ] Add complete/uncomplete instance operations
+- [ ] Add restart completed instance operation
+- [ ] Implement "end of day" filtering logic (4am boundary)
+
+### 11.3 Timer Screen Redesign
+
+#### Activity Instance Display
+- [ ] Remove activity picker/dropdown (activities created inline)
+- [ ] Display list of all current activity instances (incomplete + same-day completed)
+- [ ] Implement sorting logic:
+  - Primary: incomplete before completed
+  - Secondary: most recently active (lastActiveAt descending)
+- [ ] Add visual styling differences for active/paused/completed states
+- [ ] Show timer for currently active instance
+- [ ] Show total accumulated time for paused instances
+- [ ] Add completion checkmark or indicator for completed instances
+
+#### Create New Activity Flow
+- [ ] Add "New Activity" button/form on timer screen
+- [ ] Implement inline activity creation modal with fields:
+  - Title (text input, required)
+  - Description (text input, optional, multiline)
+  - Type (picker from configured types, with "Create New Type" option)
+- [ ] Auto-start timer when activity created (if selected)
+- [ ] Update lastActiveAt timestamp on activity creation
+
+#### Activity Instance Actions
+- [ ] Add "Start/Resume" action for paused activities
+- [ ] Add "Pause" action for active activity
+- [ ] Add "Complete" action to mark activity done
+- [ ] Add "Restart" action for completed activities (same day only)
+- [ ] Implement auto-pause when switching to different activity
+- [ ] Add "Edit" action to modify title/description/type
+- [ ] Add "Delete" action for activity instances
+
+#### Timer Controls Integration
+- [ ] Ensure only one activity can be active at a time
+- [ ] Auto-pause current activity when starting/resuming another
+- [ ] Update lastActiveAt timestamp on start/resume/pause
+- [ ] Preserve pause intervals in activity logs
+- [ ] Update timer display to show active activity name + time
+
+### 11.4 Activity Instance Lifecycle
+
+#### End-of-Day Logic
+- [ ] Implement 4am day boundary calculation utility
+- [ ] Filter out completed activities from previous days
+- [ ] Keep incomplete activities visible across day boundaries
+- [ ] Add "last updated" timestamp to track multi-day activities
+- [ ] Test day boundary logic thoroughly (midnight vs 4am)
+
+#### Completion & Restart
+- [ ] Implement complete operation (set completed=true, completedAt=now)
+- [ ] Add visual style for completed activities (grayed out, checkmark, etc.)
+- [ ] Implement restart operation (set completed=false, completedAt=null)
+- [ ] Disable restart button after day boundary
+- [ ] Stop timer when marking complete
+- [ ] Test complete/restart cycle
+
+### 11.5 Activity Type Creation On-the-Fly
+
+#### Inline Type Creation
+- [ ] Add "Create New Type" option in type picker
+- [ ] Implement quick type creation modal (name + color only)
+- [ ] Save new type to settings immediately
+- [ ] Auto-select newly created type in activity form
+- [ ] Update activity type list in settings after inline creation
+
+### 11.6 Testing
+
+#### Unit Tests
+- [ ] Add tests for ActivityType CRUD operations
+- [ ] Add tests for ActivityInstance CRUD operations
+- [ ] Add tests for complete/uncomplete/restart operations
+- [ ] Add tests for end-of-day filtering (4am boundary)
+- [ ] Add tests for sorting logic (status + lastActiveAt)
+- [ ] Add tests for auto-pause on activity switch
+
+#### Integration Tests
+- [ ] Test full activity creation flow (type selection + instance creation)
+- [ ] Test timer flow with multiple activity instances
+- [ ] Test switching between activities (auto-pause)
+- [ ] Test complete and restart same-day flow
+- [ ] Test day boundary transition (activities disappearing at 4am)
+- [ ] Test inline type creation during activity creation
+
+#### UI Tests
+- [ ] Test activity instance list rendering and sorting
+- [ ] Test visual states (active/paused/completed)
+- [ ] Test new activity creation modal
+- [ ] Test type picker with inline creation
+- [ ] Test complete/restart buttons visibility and behavior
+
+### 11.7 Documentation Updates
+
+- [ ] Update app-feature-list.md section 3 (already done)
+- [ ] Update CLAUDE.md architecture section for activity types
+- [ ] Update CLAUDE.md data storage section for new keys
+- [ ] Document ActivityType and ActivityInstance interfaces in types/
+- [ ] Add inline code comments for 4am day boundary logic
+- [ ] Update README if activity tracking is mentioned
+
+---
+
 ## Priority Recommendations
 
 **Phase 1 - Complete Core Tasks** (High Priority)
