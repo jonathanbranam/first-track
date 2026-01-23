@@ -3,9 +3,12 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, ActivityLog, ActivitySession } from '@/types/activity';
+import { Activity, ActivityType, ActivityLog, ActivitySession } from '@/types/activity';
 import { useStorage, getStorageItem, setStorageItem, removeStorageItem } from './use-storage';
 
+const ACTIVITY_TYPES_LIST_KEY = 'all';
+const ACTIVITY_TYPES_LABEL = 'activity-types';
+const ACTIVITY_TYPE_LABEL = 'activity-type';
 const ACTIVITIES_LIST_KEY = 'all';
 const ACTIVITIES_LABEL = 'activities';
 const ACTIVITY_LABEL = 'activity';
@@ -13,6 +16,143 @@ const ACTIVITY_LOGS_LABEL = 'activity-logs';
 const ACTIVITY_LOG_LABEL = 'activity-log';
 const ACTIVITY_SESSION_LABEL = 'activity-session';
 const ACTIVITY_SESSION_KEY = 'current';
+
+/**
+ * Hook for managing activity types
+ */
+export function useActivityTypes() {
+  const { data: activityTypeIds, loading, save: saveActivityTypeIds, refresh } = useStorage<string[]>(
+    ACTIVITY_TYPES_LABEL,
+    ACTIVITY_TYPES_LIST_KEY
+  );
+  const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
+
+  // Load all activity types whenever activityTypeIds changes
+  useEffect(() => {
+    if (!activityTypeIds || loading) return;
+
+    async function loadActivityTypes() {
+      const loaded = await Promise.all(
+        activityTypeIds.map((id) => getStorageItem<ActivityType>(ACTIVITY_TYPE_LABEL, id))
+      );
+      const validActivityTypes = loaded.filter((type): type is ActivityType => type !== null);
+      setActivityTypes(validActivityTypes);
+    }
+
+    loadActivityTypes();
+  }, [activityTypeIds, loading]);
+
+  /**
+   * Create a new activity type
+   */
+  const createActivityType = useCallback(
+    async (activityType: Omit<ActivityType, 'id' | 'createdAt' | 'active'>) => {
+      const newActivityType: ActivityType = {
+        ...activityType,
+        id: Date.now().toString(),
+        createdAt: Date.now(),
+        active: true,
+      };
+
+      // Save the activity type
+      await setStorageItem(ACTIVITY_TYPE_LABEL, newActivityType.id, newActivityType);
+
+      // Update the activity types list - read fresh from storage to avoid stale closure
+      const currentIds = await getStorageItem<string[]>(ACTIVITY_TYPES_LABEL, ACTIVITY_TYPES_LIST_KEY);
+      const updatedIds = [...(currentIds || []), newActivityType.id];
+      await saveActivityTypeIds(updatedIds);
+
+      setActivityTypes((prev) => [...prev, newActivityType]);
+      return newActivityType;
+    },
+    [saveActivityTypeIds]
+  );
+
+  /**
+   * Update an existing activity type
+   */
+  const updateActivityType = useCallback(async (id: string, updates: Partial<ActivityType>) => {
+    const existing = await getStorageItem<ActivityType>(ACTIVITY_TYPE_LABEL, id);
+    if (!existing) throw new Error('Activity type not found');
+
+    const updated: ActivityType = { ...existing, ...updates };
+    await setStorageItem(ACTIVITY_TYPE_LABEL, id, updated);
+
+    setActivityTypes((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    return updated;
+  }, []);
+
+  /**
+   * Delete an activity type
+   */
+  const deleteActivityType = useCallback(
+    async (id: string) => {
+      await removeStorageItem(ACTIVITY_TYPE_LABEL, id);
+
+      // Read fresh from storage to avoid stale closure
+      const currentIds = await getStorageItem<string[]>(ACTIVITY_TYPES_LABEL, ACTIVITY_TYPES_LIST_KEY);
+      const updatedIds = (currentIds || []).filter((typeId) => typeId !== id);
+      await saveActivityTypeIds(updatedIds);
+
+      setActivityTypes((prev) => prev.filter((t) => t.id !== id));
+    },
+    [saveActivityTypeIds]
+  );
+
+  /**
+   * Deactivate an activity type (soft delete - keeps it in system but marks as inactive)
+   */
+  const deactivateActivityType = useCallback(
+    async (id: string) => {
+      return updateActivityType(id, { active: false, deactivatedAt: Date.now() });
+    },
+    [updateActivityType]
+  );
+
+  /**
+   * Reactivate an activity type
+   */
+  const reactivateActivityType = useCallback(
+    async (id: string) => {
+      return updateActivityType(id, { active: true, deactivatedAt: undefined });
+    },
+    [updateActivityType]
+  );
+
+  /**
+   * Create default seed activity types
+   */
+  const createDefaultActivityTypes = useCallback(async () => {
+    const defaultTypes = [
+      { name: 'Work', color: '#4ECDC4' },
+      { name: 'Exercise', color: '#98D8C8' },
+      { name: 'Learning', color: '#F7DC6F' },
+      { name: 'Personal', color: '#BB8FCE' },
+      { name: 'Home', color: '#FFA07A' },
+      { name: 'Social', color: '#FF6B6B' },
+    ];
+
+    for (const type of defaultTypes) {
+      await createActivityType(type);
+      // Small delay to ensure storage writes complete before next read
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  }, [createActivityType]);
+
+  return {
+    activityTypes,
+    activeActivityTypes: activityTypes.filter((t) => t.active),
+    inactiveActivityTypes: activityTypes.filter((t) => !t.active),
+    loading,
+    createActivityType,
+    updateActivityType,
+    deleteActivityType,
+    deactivateActivityType,
+    reactivateActivityType,
+    createDefaultActivityTypes,
+    refresh,
+  };
+}
 
 /**
  * Hook for managing the list of all activities

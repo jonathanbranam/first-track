@@ -395,19 +395,19 @@ This section documents the refinements to activity tracking based on the updated
 ### 11.1 Activity Type System
 
 #### Data Model Changes
-- [ ] Create new `ActivityType` interface (id, name, color, createdAt)
-- [ ] Add `useActivityTypes` hook for managing activity types
-- [ ] Implement storage layer for activity types (similar to behaviors)
-- [ ] Update `Activity` interface to remove category, add typeId reference
-- [ ] Add activity type CRUD operations (create, read, update, delete)
+- [x] Create new `ActivityType` interface (id, name, color, createdAt)
+- [x] Add `useActivityTypes` hook for managing activity types
+- [x] Implement storage layer for activity types (similar to behaviors)
+- [x] Update `Activity` interface to remove category, add typeId reference
+- [x] Add activity type CRUD operations (create, read, update, delete)
 
 #### Settings UI for Activity Types
-- [ ] Replace current activity configuration with activity type configuration
-- [ ] Create activity type list view in settings
-- [ ] Implement activity type form (name + color picker)
-- [ ] Add default activity types seed data
-- [ ] Add activate/deactivate for activity types (like behaviors)
-- [ ] Update tests for activity type management
+- [x] Replace current activity configuration with activity type configuration
+- [x] Create activity type list view in settings
+- [x] Implement activity type form (name + color picker)
+- [x] Add default activity types seed data
+- [x] Add activate/deactivate for activity types (like behaviors)
+- [x] Update tests for activity type management
 
 ### 11.2 Activity Instance System
 
