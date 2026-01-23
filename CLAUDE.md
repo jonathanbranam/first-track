@@ -38,7 +38,7 @@ File-based routing with Expo Router:
 - `app/(tabs)/_layout.tsx` - Tab navigation with 6 tabs
 - `app/(tabs)/index.tsx` - **Tasks Screen** (main) - drag-and-drop task list with bulk operations
 - `app/(tabs)/task-lists.tsx` - **Task Lists Screen** - manage lists with emoji/color pickers
-- `app/(tabs)/timer.tsx` - **Timer Screen** - activity timer with pause/resume
+- `app/(tabs)/timer.tsx` - **Timer Screen** - activity instance list with inline creation, start/pause/complete actions
 - `app/(tabs)/behaviors.tsx` - **Behaviors Screen** - behavior tracking and logging
 - `app/(tabs)/reflect.tsx` - **Reflect Screen** - daily reflection with 0-10 rating scale
 - `app/(tabs)/settings.tsx` - **Settings Screen**
@@ -61,6 +61,9 @@ Organized by feature:
 - `components/behaviors/` - Behavior tracking
   - `quick-log-fab.tsx` - Floating action button
   - `quick-log-modal.tsx` - Global quick-log modal
+- `components/activities/` - Activity instance management
+  - `activity-instance-modal.tsx` - Create/edit activity instance with type selection and inline type creation
+  - `activity-instance-item.tsx` - Display activity instance with timer, status, and action buttons
 - `components/ui/` - Core reusable UI
   - `rating-scale.tsx` - 0-10 rating buttons for reflections
   - `icon-symbol.tsx` - Icon component with symbol mapping
@@ -82,9 +85,10 @@ Custom hooks for state and data management:
   - `useActivities()` - [DEPRECATED] Legacy activity management - use useActivityInstances instead
   - `useActivityInstances()` - Manage individual activity instances with complete/restart lifecycle
   - `useActivityLogs()` - Manage activity session logs
-  - `useActivitySession()` - Manage current timer state
+  - `useActivitySession()` - Manage current timer state, updates lastActiveAt on start/pause/resume
   - `getCurrentDayBoundary()` - Utility for 4am day boundary calculation
   - `isCurrentDay()` - Check if timestamp is from current day (4am boundary)
+  - `calculateAccumulatedDuration()` - Calculate accumulated duration for activity logs (excluding paused time)
 - `use-behaviors.ts` - Behavior and log management (CRUD, stats calculation)
 - `use-reflections.ts` - Reflection questions and responses (CRUD, daily tracking)
 - `use-color-scheme.ts` - Light/dark mode detection (platform-specific)
@@ -117,7 +121,8 @@ Comprehensive test coverage:
 - `activities.test.tsx` (1,070 lines) - Activity types, activities, logs, and session tests (39 tests, 97% coverage)
 - `behaviors.test.tsx` (707 lines) - Behavior and log management tests
 - `reflections.test.tsx` (734 lines) - Reflection Q&A tests
-- `timer-display.test.tsx`, `timer-screen.test.tsx` - Timer component tests
+- `timer-display.test.tsx`, `timer-screen.test.tsx` - Timer component tests (legacy)
+- `timer-screen-redesign.test.tsx` (500+ lines) - Comprehensive tests for redesigned timer screen (Section 11.3)
 - `activity-picker.test.tsx`, `behavior-screen.test.tsx` - Component tests
 - `jest.setup.ts` - Test configuration (mocks AsyncStorage, Expo, draggable-flatlist)
 
@@ -200,6 +205,15 @@ reflection-responses-{questionId}-{date} → ReflectionResponse[]
   - `currentDayInstances` - filtered list of incomplete + same-day completed instances
   - `sortedInstances` - sorted by completion status and lastActiveAt
   - `completeInstance()`, `restartInstance()` - lifecycle operations
+- **Timer Screen Workflow:**
+  - Activity instances are created inline on the timer screen (not in settings)
+  - Each instance has a title, optional description, and references an ActivityType
+  - Instances can be in one of three states: active (timer running), paused, or completed
+  - The timer screen displays all incomplete instances and same-day completed instances
+  - Sorting: incomplete instances first, then by most recently active (lastActiveAt descending)
+  - Auto-pause: starting a new instance automatically pauses the current active instance
+  - Complete/Restart: completed instances can only be restarted on the same day (4am boundary)
+  - Activity types can be created on-the-fly during instance creation
 
 ### Adding New Icons
 1. Find SF Symbol name from Apple's SF Symbols app or web resources

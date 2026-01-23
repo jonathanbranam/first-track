@@ -1,241 +1,244 @@
 /**
- * Activity Timer screen - for tracking time spent on activities
+ * Activity Timer screen - for tracking time spent on activity instances
  */
 
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { StyleSheet, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { TimerDisplay } from '@/components/timer-display';
-import { ActivityPicker } from '@/components/activity-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { QuickLogFAB } from '@/components/behaviors/quick-log-fab';
-import { useActivities, useActivitySession } from '@/hooks/use-activities';
+import { ActivityInstanceModal } from '@/components/activities/activity-instance-modal';
+import { ActivityInstanceItem } from '@/components/activities/activity-instance-item';
+import {
+  useActivityInstances,
+  useActivityTypes,
+  useActivitySession,
+  useActivityLogs,
+  calculateAccumulatedDuration,
+} from '@/hooks/use-activities';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Activity } from '@/types/activity';
+import { ActivityInstance, ActivityLog } from '@/types/activity';
 
 export default function TimerScreen() {
-  const { activeActivities, loading: activitiesLoading } = useActivities();
-  const { session, startActivity, pauseActivity, resumeActivity, stopActivity, switchActivity, resumeFromStack } = useActivitySession();
-  const [showActivityPicker, setShowActivityPicker] = useState(false);
-  const [showSwitchPicker, setShowSwitchPicker] = useState(false);
-  const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
-  const [stackActivities, setStackActivities] = useState<Activity[]>([]);
+  const { currentDayInstances, getSortedInstances, createInstance, updateInstance, deleteInstance, completeInstance, restartInstance, refresh: refreshInstances } = useActivityInstances();
+  const { activeActivityTypes, createActivityType } = useActivityTypes();
+  const { session, startActivity, pauseActivity, resumeActivity, stopActivity } = useActivitySession();
+  const { logs } = useActivityLogs('all');
+
+  const [showInstanceModal, setShowInstanceModal] = useState(false);
+  const [editingInstance, setEditingInstance] = useState<ActivityInstance | null>(null);
 
   const tintColor = useThemeColor({}, 'tint');
   const backgroundColor = useThemeColor({}, 'background');
   const borderColor = useThemeColor({}, 'icon');
-  // Use background color for text/icons on tint-colored backgrounds (for contrast)
   const tintContrastColor = backgroundColor;
 
-  // Load current activity details
-  useEffect(() => {
-    if (session?.currentLog.activityId && activeActivities.length > 0) {
-      const activity = activeActivities.find(a => a.id === session.currentLog.activityId);
-      setCurrentActivity(activity || null);
-    } else {
-      setCurrentActivity(null);
-    }
-  }, [session, activeActivities]);
+  // Sort instances: incomplete first, then by lastActiveAt descending
+  const sortedInstances = useMemo(() => {
+    return getSortedInstances(currentDayInstances);
+  }, [currentDayInstances, getSortedInstances]);
 
-  // Load paused stack activities
-  useEffect(() => {
-    if (session?.pausedActivityStack && activeActivities.length > 0) {
-      const stackActs = session.pausedActivityStack
-        .map(log => activeActivities.find(a => a.id === log.activityId))
-        .filter((a): a is Activity => a !== undefined);
-      setStackActivities(stackActs);
-    } else {
-      setStackActivities([]);
+  // Get accumulated duration for each paused instance
+  const getInstanceAccumulatedDuration = (instanceId: string): number => {
+    // If this instance is currently in session (paused), calculate from session log
+    if (session && session.currentLog.activityId === instanceId) {
+      return calculateAccumulatedDuration(session.currentLog);
     }
-  }, [session, activeActivities]);
 
-  const handleStartActivity = async (activity: Activity) => {
-    await startActivity(activity.id);
-    // currentActivity will be updated by the useEffect when session changes
+    // Check if this instance is in the paused stack
+    if (session?.pausedActivityStack) {
+      const stackLog = session.pausedActivityStack.find(log => log.activityId === instanceId);
+      if (stackLog) {
+        return calculateAccumulatedDuration(stackLog);
+      }
+    }
+
+    // Otherwise, sum up all completed logs for this instance
+    const instanceLogs = logs.filter(log => log.activityId === instanceId && log.endTime);
+    return instanceLogs.reduce((total, log) => total + log.duration, 0);
   };
 
-  const handlePause = async () => {
+  // Handle creating a new activity instance
+  const handleCreateInstance = async (title: string, description: string, typeId: string, shouldStartTimer: boolean) => {
+    const newInstance = await createInstance({ title, description, typeId });
+    setShowInstanceModal(false);
+
+    if (shouldStartTimer) {
+      // Start timer immediately
+      await handleStartInstance(newInstance.id);
+    }
+
+    await refreshInstances();
+  };
+
+  // Handle editing an activity instance
+  const handleEditInstance = (instance: ActivityInstance) => {
+    setEditingInstance(instance);
+    setShowInstanceModal(true);
+  };
+
+  // Handle saving edited instance
+  const handleSaveEditedInstance = async (title: string, description: string, typeId: string) => {
+    if (!editingInstance) return;
+
+    await updateInstance(editingInstance.id, { title, description, typeId });
+    setEditingInstance(null);
+    setShowInstanceModal(false);
+    await refreshInstances();
+  };
+
+  // Handle starting/resuming an instance
+  const handleStartInstance = async (instanceId: string) => {
+    // If there's an active session, auto-pause it first
+    if (session && !session.isPaused) {
+      await pauseActivity();
+    }
+
+    // If this instance is already the current one and paused, just resume it
+    if (session && session.currentLog.activityId === instanceId && session.isPaused) {
+      await resumeActivity();
+    } else {
+      // Start a new session for this instance
+      await startActivity(instanceId);
+    }
+
+    await refreshInstances();
+  };
+
+  // Handle pausing the current instance
+  const handlePauseInstance = async () => {
     await pauseActivity();
+    await refreshInstances();
   };
 
-  const handleResume = async () => {
-    await resumeActivity();
+  // Handle completing an instance
+  const handleCompleteInstance = async (instanceId: string) => {
+    // If this instance is currently active, stop the timer first
+    if (session && session.currentLog.activityId === instanceId) {
+      await stopActivity();
+    }
+
+    await completeInstance(instanceId);
+    await refreshInstances();
   };
 
-  const handleStop = async () => {
-    await stopActivity();
-    // currentActivity will be updated by the useEffect when session changes
+  // Handle restarting a completed instance
+  const handleRestartInstance = async (instanceId: string) => {
+    await restartInstance(instanceId);
+    await refreshInstances();
   };
 
-  const handleSwitchActivity = async (activity: Activity) => {
-    await switchActivity(activity.id);
-    setShowSwitchPicker(false);
+  // Handle deleting an instance
+  const handleDeleteInstance = (instanceId: string) => {
+    Alert.alert(
+      'Delete Activity',
+      'Are you sure you want to delete this activity instance? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // If this instance is currently active, stop the timer first
+            if (session && session.currentLog.activityId === instanceId) {
+              await stopActivity();
+            }
+
+            await deleteInstance(instanceId);
+            await refreshInstances();
+          },
+        },
+      ]
+    );
   };
 
-  const handleResumeFromStack = async (index: number) => {
-    await resumeFromStack(index);
+  // Handle creating a new activity type on-the-fly
+  const handleCreateNewType = async (name: string, color: string) => {
+    return await createActivityType({ name, color });
   };
 
-  const hasActiveSession = session !== null && session !== undefined;
-  const isPaused = session?.isPaused || false;
-  const stackDepth = session?.pausedActivityStack.length || 0;
+  // Handle closing the modal
+  const handleCloseModal = () => {
+    setShowInstanceModal(false);
+    setEditingInstance(null);
+  };
 
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Header with Title */}
         <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <ThemedText style={styles.title}>Activity Timer</ThemedText>
-            {stackDepth > 0 && (
-              <View style={[styles.stackBadge, { backgroundColor: tintColor }]}>
-                <ThemedText style={[styles.stackBadgeText, { color: tintContrastColor }]}>{stackDepth}</ThemedText>
-              </View>
-            )}
-          </View>
+          <ThemedText style={styles.title}>Activity Timer</ThemedText>
+          <TouchableOpacity
+            style={[styles.newButton, { backgroundColor: tintColor }]}
+            onPress={() => setShowInstanceModal(true)}>
+            <IconSymbol name="plus" size={20} color={tintContrastColor} />
+            <ThemedText style={[styles.newButtonText, { color: tintContrastColor }]}>
+              New Activity
+            </ThemedText>
+          </TouchableOpacity>
         </View>
 
-        {hasActiveSession && currentActivity ? (
-          <View style={styles.timerSection}>
-            {/* Current Activity Name */}
-            <View style={styles.activityHeader}>
-              {currentActivity.color && (
-                <View style={[styles.colorIndicator, { backgroundColor: currentActivity.color }]} />
-              )}
-              <View style={styles.activityInfo}>
-                <ThemedText style={styles.activityName}>{currentActivity.name}</ThemedText>
-                {currentActivity.category && (
-                  <ThemedText style={styles.activityCategory}>{currentActivity.category}</ThemedText>
-                )}
-              </View>
-            </View>
-
-            {/* Timer Display */}
-            <TimerDisplay
-              startTime={session.currentLog.startTime}
-              pauseIntervals={session.currentLog.pauseIntervals}
-              isPaused={isPaused}
-              style={styles.timer}
-            />
-
-            {/* Status Indicator */}
-            <View style={styles.statusIndicator}>
-              <View style={[
-                styles.statusDot,
-                { backgroundColor: isPaused ? '#FFA500' : '#4CAF50' }
-              ]} />
-              <ThemedText style={styles.statusText}>
-                {isPaused ? 'Paused' : 'Running'}
-              </ThemedText>
-            </View>
-
-            {/* Control Buttons */}
-            <View style={styles.controls}>
-              {!isPaused ? (
-                <TouchableOpacity
-                  style={[styles.button, styles.pauseButton]}
-                  onPress={handlePause}
-                >
-                  <IconSymbol name="pause" size={24} color="#fff" />
-                  <ThemedText style={styles.buttonText}>Pause</ThemedText>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.button, styles.resumeButton, { backgroundColor: tintColor }]}
-                  onPress={handleResume}
-                >
-                  <IconSymbol name="play" size={24} color={tintContrastColor} />
-                  <ThemedText style={[styles.buttonText, { color: tintContrastColor }]}>Resume</ThemedText>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={[styles.button, styles.switchButton, { borderColor: tintColor }]}
-                onPress={() => setShowSwitchPicker(true)}
-              >
-                <IconSymbol name="arrow.left.arrow.right" size={24} color={tintColor} />
-                <ThemedText style={[styles.switchButtonText, { color: tintColor }]}>Switch Activity</ThemedText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, styles.stopButton]}
-                onPress={handleStop}
-              >
-                <IconSymbol name="stop" size={24} color="#fff" />
-                <ThemedText style={styles.buttonText}>Stop & Save</ThemedText>
-              </TouchableOpacity>
-            </View>
-
-            {/* Paused Activity Stack */}
-            {stackDepth > 0 && (
-              <View style={styles.stackSection}>
-                <ThemedText style={styles.stackTitle}>
-                  Paused Activities ({stackDepth})
-                </ThemedText>
-                <View style={styles.stackList}>
-                  {stackActivities.map((activity, index) => (
-                    <TouchableOpacity
-                      key={`${activity.id}-${index}`}
-                      style={[styles.stackItem, { borderColor: borderColor }]}
-                      onPress={() => handleResumeFromStack(index)}
-                    >
-                      {activity.color && (
-                        <View style={[styles.stackColorIndicator, { backgroundColor: activity.color }]} />
-                      )}
-                      <View style={styles.stackItemInfo}>
-                        <ThemedText style={styles.stackItemName}>{activity.name}</ThemedText>
-                        {activity.category && (
-                          <ThemedText style={styles.stackItemCategory}>{activity.category}</ThemedText>
-                        )}
-                      </View>
-                      <IconSymbol name="play.circle" size={24} color={tintColor} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
-        ) : (
+        {/* Activity Instances List */}
+        {sortedInstances.length === 0 ? (
           <View style={styles.emptyState}>
             <IconSymbol name="clock" size={80} color={borderColor} />
-            <ThemedText style={styles.emptyTitle}>No Active Timer</ThemedText>
+            <ThemedText style={styles.emptyTitle}>No Activities Yet</ThemedText>
             <ThemedText style={styles.emptyDescription}>
-              Start tracking time on an activity
+              Create an activity to start tracking your time
             </ThemedText>
-
             <TouchableOpacity
-              style={[styles.startButton, { backgroundColor: tintColor }]}
-              onPress={() => setShowActivityPicker(true)}
-              disabled={activitiesLoading || activeActivities.length === 0}
-            >
+              style={[styles.emptyButton, { backgroundColor: tintColor }]}
+              onPress={() => setShowInstanceModal(true)}>
               <IconSymbol name="plus" size={24} color={tintContrastColor} />
-              <ThemedText style={[styles.startButtonText, { color: tintContrastColor }]}>Start Activity</ThemedText>
-            </TouchableOpacity>
-
-            {!activitiesLoading && activeActivities.length === 0 && (
-              <ThemedText style={styles.noActivitiesText}>
-                No active activities. Create one in Settings.
+              <ThemedText style={[styles.emptyButtonText, { color: tintContrastColor }]}>
+                Create Activity
               </ThemedText>
-            )}
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.instancesList}>
+            {sortedInstances.map((instance) => {
+              const isActive = session?.currentLog.activityId === instance.id;
+              const isPaused = isActive && session?.isPaused;
+              const activityType = activeActivityTypes.find(t => t.id === instance.typeId);
+              const accumulatedDuration = getInstanceAccumulatedDuration(instance.id);
+
+              return (
+                <ActivityInstanceItem
+                  key={instance.id}
+                  instance={instance}
+                  activityType={activityType}
+                  isActive={isActive}
+                  isPaused={isPaused}
+                  currentLog={isActive ? session?.currentLog : undefined}
+                  accumulatedDuration={accumulatedDuration}
+                  onStart={() => handleStartInstance(instance.id)}
+                  onPause={handlePauseInstance}
+                  onComplete={() => handleCompleteInstance(instance.id)}
+                  onRestart={() => handleRestartInstance(instance.id)}
+                  onEdit={() => handleEditInstance(instance)}
+                  onDelete={() => handleDeleteInstance(instance.id)}
+                />
+              );
+            })}
           </View>
         )}
       </ScrollView>
 
-      {/* Activity Picker Modal */}
-      <ActivityPicker
-        visible={showActivityPicker}
-        activities={activeActivities}
-        onSelectActivity={handleStartActivity}
-        onClose={() => setShowActivityPicker(false)}
+      {/* Activity Instance Modal */}
+      <ActivityInstanceModal
+        visible={showInstanceModal}
+        title={editingInstance?.title}
+        description={editingInstance?.description}
+        typeId={editingInstance?.typeId}
+        mode={editingInstance ? 'edit' : 'create'}
+        onClose={handleCloseModal}
+        onSave={editingInstance ? handleSaveEditedInstance : handleCreateInstance}
+        onCreateNewType={handleCreateNewType}
       />
 
-      {/* Switch Activity Picker Modal */}
-      <ActivityPicker
-        visible={showSwitchPicker}
-        activities={activeActivities}
-        onSelectActivity={handleSwitchActivity}
-        onClose={() => setShowSwitchPicker(false)}
-      />
       <QuickLogFAB />
     </ThemedView>
   );
@@ -250,109 +253,29 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    marginBottom: 30,
-  },
-  titleRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
+    marginBottom: 24,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
   },
-  stackBadge: {
-    minWidth: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  stackBadgeText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  timerSection: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  activityHeader: {
+  newButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  colorIndicator: {
-    width: 16,
-    height: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    marginRight: 12,
+    gap: 6,
   },
-  activityInfo: {
-    alignItems: 'center',
-  },
-  activityName: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  activityCategory: {
+  newButtonText: {
     fontSize: 16,
-    opacity: 0.6,
-    marginTop: 4,
-  },
-  timer: {
-    marginVertical: 40,
-  },
-  statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
-  },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  statusText: {
-    fontSize: 18,
-    fontWeight: '500',
-  },
-  controls: {
-    gap: 16,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 18,
-    borderRadius: 12,
-    gap: 12,
-  },
-  pauseButton: {
-    backgroundColor: '#FFA500',
-  },
-  resumeButton: {
-    // backgroundColor set dynamically with tintColor
-  },
-  stopButton: {
-    backgroundColor: '#DC3545',
-  },
-  switchButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
     fontWeight: '600',
   },
-  switchButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
+  instancesList: {
+    flex: 1,
   },
   emptyState: {
     flex: 1,
@@ -372,7 +295,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
   },
-  startButton: {
+  emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -381,51 +304,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 12,
   },
-  startButtonText: {
-    color: '#fff',
+  emptyButtonText: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  noActivitiesText: {
-    fontSize: 14,
-    opacity: 0.6,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  stackSection: {
-    marginTop: 32,
-  },
-  stackTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  stackList: {
-    gap: 8,
-  },
-  stackItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 12,
-  },
-  stackColorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  stackItemInfo: {
-    flex: 1,
-  },
-  stackItemName: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  stackItemCategory: {
-    fontSize: 14,
-    opacity: 0.6,
-    marginTop: 2,
   },
 });
