@@ -3,12 +3,26 @@
  */
 
 /**
+ * ActivityType represents a category or type of activity (e.g., "Work", "Exercise", "Learning")
+ * This is configured in settings and used to categorize activity instances
+ */
+export interface ActivityType {
+  id: string;
+  name: string; // e.g., "Work", "Exercise", "Learning"
+  color: string; // hex color code for visual identification
+  active: boolean; // whether this type is active or archived
+  createdAt: number; // timestamp
+  deactivatedAt?: number; // timestamp when deactivated
+}
+
+/**
  * Activity represents a trackable activity/project that can be timed
  */
 export interface Activity {
   id: string;
   name: string;
-  category?: string; // work, home, personal, etc.
+  category?: string; // work, home, personal, etc. - DEPRECATED: use typeId instead
+  typeId?: string; // reference to ActivityType
   color?: string;
   active: boolean; // whether this activity is active or archived
   createdAt: number; // timestamp

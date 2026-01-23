@@ -10,19 +10,18 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useActivities } from '@/hooks/use-activities';
+import { useActivityTypes } from '@/hooks/use-activities';
 import { useBehaviors } from '@/hooks/use-behaviors';
 import { useReflectionQuestions } from '@/hooks/use-reflections';
-import { Activity } from '@/types/activity';
+import { ActivityType } from '@/types/activity';
 import { Behavior, BehaviorType } from '@/types/behavior';
 import { ReflectionQuestion } from '@/types/reflection';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-interface ActivityFormData {
+interface ActivityTypeFormData {
   name: string;
-  category: string;
   color: string;
 }
 
@@ -35,16 +34,6 @@ interface BehaviorFormData {
 interface ReflectionQuestionFormData {
   text: string;
 }
-
-const CATEGORIES = [
-  'Work',
-  'Home',
-  'Personal',
-  'Exercise',
-  'Learning',
-  'Social',
-  'Other',
-];
 
 const COLORS = [
   '#FF6B6B', // Red
@@ -78,17 +67,17 @@ export default function SettingsScreen() {
   const tintContrastColor = colors.background;
 
   const {
-    activities,
-    activeActivities,
-    inactiveActivities,
-    loading,
-    createActivity,
-    updateActivity,
-    deleteActivity,
-    deactivateActivity,
-    reactivateActivity,
-    createDefaultActivities,
-  } = useActivities();
+    activityTypes,
+    activeActivityTypes,
+    inactiveActivityTypes,
+    loading: activityTypesLoading,
+    createActivityType,
+    updateActivityType,
+    deleteActivityType,
+    deactivateActivityType,
+    reactivateActivityType,
+    createDefaultActivityTypes,
+  } = useActivityTypes();
 
   const {
     behaviors,
@@ -116,11 +105,10 @@ export default function SettingsScreen() {
     createDefaultQuestions,
   } = useReflectionQuestions();
 
-  const [showForm, setShowForm] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [formData, setFormData] = useState<ActivityFormData>({
+  const [showActivityTypeForm, setShowActivityTypeForm] = useState(false);
+  const [editingActivityType, setEditingActivityType] = useState<ActivityType | null>(null);
+  const [activityTypeFormData, setActivityTypeFormData] = useState<ActivityTypeFormData>({
     name: '',
-    category: CATEGORIES[0],
     color: COLORS[0],
   });
 
@@ -138,109 +126,105 @@ export default function SettingsScreen() {
     text: '',
   });
 
-  const handleCreateActivity = async () => {
-    if (!formData.name.trim()) {
-      Alert.alert('Error', 'Activity name is required');
+  const handleCreateActivityType = async () => {
+    if (!activityTypeFormData.name.trim()) {
+      Alert.alert('Error', 'Activity type name is required');
       return;
     }
 
     try {
-      await createActivity({
-        name: formData.name.trim(),
-        category: formData.category,
-        color: formData.color,
-        active: true,
+      await createActivityType({
+        name: activityTypeFormData.name.trim(),
+        color: activityTypeFormData.color,
       });
-      setShowForm(false);
-      setFormData({ name: '', category: CATEGORIES[0], color: COLORS[0] });
+      setShowActivityTypeForm(false);
+      setActivityTypeFormData({ name: '', color: COLORS[0] });
     } catch (error) {
-      Alert.alert('Error', 'Failed to create activity');
+      Alert.alert('Error', 'Failed to create activity type');
     }
   };
 
-  const handleUpdateActivity = async () => {
-    if (!editingActivity || !formData.name.trim()) {
-      Alert.alert('Error', 'Activity name is required');
+  const handleUpdateActivityType = async () => {
+    if (!editingActivityType || !activityTypeFormData.name.trim()) {
+      Alert.alert('Error', 'Activity type name is required');
       return;
     }
 
     try {
-      await updateActivity(editingActivity.id, {
-        name: formData.name.trim(),
-        category: formData.category,
-        color: formData.color,
+      await updateActivityType(editingActivityType.id, {
+        name: activityTypeFormData.name.trim(),
+        color: activityTypeFormData.color,
       });
-      setShowForm(false);
-      setEditingActivity(null);
-      setFormData({ name: '', category: CATEGORIES[0], color: COLORS[0] });
+      setShowActivityTypeForm(false);
+      setEditingActivityType(null);
+      setActivityTypeFormData({ name: '', color: COLORS[0] });
     } catch (error) {
-      Alert.alert('Error', 'Failed to update activity');
+      Alert.alert('Error', 'Failed to update activity type');
     }
   };
 
-  const handleDeleteActivity = (activity: Activity) => {
+  const handleDeleteActivityType = (activityType: ActivityType) => {
     Alert.alert(
-      'Delete Activity',
-      `Are you sure you want to delete "${activity.name}"? This will also delete all associated logs.`,
+      'Delete Activity Type',
+      `Are you sure you want to delete "${activityType.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteActivity(activity.id),
+          onPress: () => deleteActivityType(activityType.id),
         },
       ]
     );
   };
 
-  const handleToggleActive = async (activity: Activity) => {
+  const handleToggleActivityTypeActive = async (activityType: ActivityType) => {
     try {
-      if (activity.active) {
-        await deactivateActivity(activity.id);
+      if (activityType.active) {
+        await deactivateActivityType(activityType.id);
       } else {
-        await reactivateActivity(activity.id);
+        await reactivateActivityType(activityType.id);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update activity status');
+      Alert.alert('Error', 'Failed to update activity type status');
     }
   };
 
-  const openEditForm = (activity: Activity) => {
-    setEditingActivity(activity);
-    setFormData({
-      name: activity.name,
-      category: activity.category || CATEGORIES[0],
-      color: activity.color || COLORS[0],
+  const openEditActivityTypeForm = (activityType: ActivityType) => {
+    setEditingActivityType(activityType);
+    setActivityTypeFormData({
+      name: activityType.name,
+      color: activityType.color,
     });
-    setShowForm(true);
+    setShowActivityTypeForm(true);
   };
 
-  const openCreateForm = () => {
-    setEditingActivity(null);
-    setFormData({ name: '', category: CATEGORIES[0], color: COLORS[0] });
-    setShowForm(true);
+  const openCreateActivityTypeForm = () => {
+    setEditingActivityType(null);
+    setActivityTypeFormData({ name: '', color: COLORS[0] });
+    setShowActivityTypeForm(true);
   };
 
-  const closeForm = () => {
-    setShowForm(false);
-    setEditingActivity(null);
-    setFormData({ name: '', category: CATEGORIES[0], color: COLORS[0] });
+  const closeActivityTypeForm = () => {
+    setShowActivityTypeForm(false);
+    setEditingActivityType(null);
+    setActivityTypeFormData({ name: '', color: COLORS[0] });
   };
 
-  const handleCreateDefaults = () => {
+  const handleCreateDefaultActivityTypes = () => {
     Alert.alert(
-      'Create Default Activities',
-      'This will create 8 sample activities to help you get started. You can edit or delete them later.',
+      'Create Default Activity Types',
+      'This will create 6 sample activity types to help you get started. You can edit or delete them later.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Create',
           onPress: async () => {
             try {
-              await createDefaultActivities();
-              Alert.alert('Success', 'Default activities created!');
+              await createDefaultActivityTypes();
+              Alert.alert('Success', 'Default activity types created!');
             } catch (error) {
-              Alert.alert('Error', 'Failed to create default activities');
+              Alert.alert('Error', 'Failed to create default activity types');
             }
           },
         },
@@ -468,40 +452,37 @@ export default function SettingsScreen() {
     );
   };
 
-  const renderActivity = (activity: Activity) => (
+  const renderActivityType = (activityType: ActivityType) => (
     <View
-      key={activity.id}
+      key={activityType.id}
       style={[
         styles.activityItem,
         { backgroundColor: colors.background, borderColor: colors.border },
       ]}>
       <View style={styles.activityInfo}>
-        <View style={[styles.colorIndicator, { backgroundColor: activity.color }]} />
+        <View style={[styles.colorIndicator, { backgroundColor: activityType.color }]} />
         <View style={styles.activityDetails}>
           <Text style={[styles.activityName, { color: colors.text }]}>
-            {activity.name}
-          </Text>
-          <Text style={[styles.activityCategory, { color: colors.icon }]}>
-            {activity.category}
+            {activityType.name}
           </Text>
         </View>
       </View>
       <View style={styles.activityActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => handleToggleActive(activity)}>
-          <Text style={[styles.actionButtonText, { color: activity.active ? colors.tint : '#999' }]}>
-            {activity.active ? 'Active' : 'Inactive'}
+          onPress={() => handleToggleActivityTypeActive(activityType)}>
+          <Text style={[styles.actionButtonText, { color: activityType.active ? colors.tint : '#999' }]}>
+            {activityType.active ? 'Active' : 'Inactive'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => openEditForm(activity)}>
+          onPress={() => openEditActivityTypeForm(activityType)}>
           <IconSymbol name="pencil" size={20} color={colors.tint} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => handleDeleteActivity(activity)}>
+          onPress={() => handleDeleteActivityType(activityType)}>
           <IconSymbol name="trash" size={20} color="#FF6B6B" />
         </TouchableOpacity>
       </View>
@@ -597,45 +578,45 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Activities</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Activity Types</Text>
             <TouchableOpacity
               style={[styles.addButton, { backgroundColor: colors.tint }]}
-              onPress={openCreateForm}>
+              onPress={openCreateActivityTypeForm}>
               <IconSymbol name="plus" size={20} color={tintContrastColor} />
             </TouchableOpacity>
           </View>
 
-          {loading ? (
+          {activityTypesLoading ? (
             <Text style={[styles.loadingText, { color: colors.icon }]}>Loading...</Text>
           ) : (
             <>
-              {activeActivities.length > 0 && (
+              {activeActivityTypes.length > 0 && (
                 <>
                   <Text style={[styles.subsectionTitle, { color: colors.icon }]}>
-                    Active Activities
+                    Active Activity Types
                   </Text>
-                  {activeActivities.map(renderActivity)}
+                  {activeActivityTypes.map(renderActivityType)}
                 </>
               )}
 
-              {inactiveActivities.length > 0 && (
+              {inactiveActivityTypes.length > 0 && (
                 <>
                   <Text style={[styles.subsectionTitle, { color: colors.icon, marginTop: 20 }]}>
-                    Inactive Activities
+                    Inactive Activity Types
                   </Text>
-                  {inactiveActivities.map(renderActivity)}
+                  {inactiveActivityTypes.map(renderActivityType)}
                 </>
               )}
 
-              {activities.length === 0 && (
+              {activityTypes.length === 0 && (
                 <View>
                   <Text style={[styles.emptyText, { color: colors.icon }]}>
-                    No activities yet. Tap + to create one.
+                    No activity types yet. Tap + to create one.
                   </Text>
                   <TouchableOpacity
                     style={[styles.defaultButton, { backgroundColor: colors.tint }]}
-                    onPress={handleCreateDefaults}>
-                    <Text style={[styles.defaultButtonText, { color: tintContrastColor }]}>Create Default Activities</Text>
+                    onPress={handleCreateDefaultActivityTypes}>
+                    <Text style={[styles.defaultButtonText, { color: tintContrastColor }]}>Create Default Activity Types</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -741,20 +722,20 @@ export default function SettingsScreen() {
       </ScrollView>
 
       <Modal
-        visible={showForm}
+        visible={showActivityTypeForm}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={closeForm}>
+        onRequestClose={closeActivityTypeForm}>
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={closeForm}>
+            <TouchableOpacity onPress={closeActivityTypeForm}>
               <Text style={[styles.cancelButton, { color: colors.tint }]}>Cancel</Text>
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {editingActivity ? 'Edit Activity' : 'New Activity'}
+              {editingActivityType ? 'Edit Activity Type' : 'New Activity Type'}
             </Text>
             <TouchableOpacity
-              onPress={editingActivity ? handleUpdateActivity : handleCreateActivity}>
+              onPress={editingActivityType ? handleUpdateActivityType : handleCreateActivityType}>
               <Text style={[styles.saveButton, { color: colors.tint }]}>Save</Text>
             </TouchableOpacity>
           </View>
@@ -767,40 +748,11 @@ export default function SettingsScreen() {
                   styles.input,
                   { backgroundColor: colors.background, borderColor: colors.border, color: colors.text },
                 ]}
-                value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                placeholder="Enter activity name"
+                value={activityTypeFormData.name}
+                onChangeText={(text) => setActivityTypeFormData({ ...activityTypeFormData, name: text })}
+                placeholder="Enter activity type name (e.g., Work, Exercise)"
                 placeholderTextColor={colors.icon}
               />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Category</Text>
-              <View style={styles.categoryGrid}>
-                {CATEGORIES.map((category) => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[
-                      styles.categoryButton,
-                      {
-                        backgroundColor:
-                          formData.category === category ? colors.tint : colors.background,
-                        borderColor: colors.border,
-                      },
-                    ]}
-                    onPress={() => setFormData({ ...formData, category })}>
-                    <Text
-                      style={[
-                        styles.categoryButtonText,
-                        {
-                          color: formData.category === category ? tintContrastColor : colors.text,
-                        },
-                      ]}>
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
             </View>
 
             <View style={styles.formGroup}>
@@ -813,11 +765,11 @@ export default function SettingsScreen() {
                       styles.colorButton,
                       {
                         backgroundColor: color,
-                        borderWidth: formData.color === color ? 3 : 0,
+                        borderWidth: activityTypeFormData.color === color ? 3 : 0,
                         borderColor: colors.tint,
                       },
                     ]}
-                    onPress={() => setFormData({ ...formData, color })}
+                    onPress={() => setActivityTypeFormData({ ...activityTypeFormData, color })}
                   />
                 ))}
               </View>

@@ -77,7 +77,11 @@ Organized by feature:
 #### Data Layer (`hooks/`)
 Custom hooks for state and data management:
 - `use-storage.ts` - **Core data persistence** - AsyncStorage wrapper with CRUD operations
-- `use-activities.ts` - Activity management (CRUD, timer session state)
+- `use-activities.ts` - Activity type and activity management (CRUD, timer session state)
+  - `useActivityTypes()` - Manage activity type categories (Work, Exercise, etc.)
+  - `useActivities()` - Manage individual activity instances
+  - `useActivityLogs()` - Manage activity session logs
+  - `useActivitySession()` - Manage current timer state
 - `use-behaviors.ts` - Behavior and log management (CRUD, stats calculation)
 - `use-reflections.ts` - Reflection questions and responses (CRUD, daily tracking)
 - `use-color-scheme.ts` - Light/dark mode detection (platform-specific)
@@ -89,7 +93,11 @@ TypeScript interfaces for all data models:
 - `task.ts` - `Task` interface (id, description, notes, completed, deletedAt)
 - `task-list.ts` - `TaskList` interface (id, name, emoji, color, listType)
 - `behavior.ts` - `Behavior`, `BehaviorLog`, `BehaviorStats` (type: reps/duration/weight/count)
-- `activity.ts` - `Activity`, `ActivityLog`, `ActivitySession` (timer data with pause intervals)
+- `activity.ts` - `ActivityType`, `Activity`, `ActivityLog`, `ActivitySession`
+  - `ActivityType` - Configurable categories (name, color, active status)
+  - `Activity` - Individual activity instances (references ActivityType via typeId)
+  - `ActivityLog` - Timer session data with pause intervals
+  - `ActivitySession` - Current timer state
 - `reflection.ts` - `ReflectionQuestion`, `ReflectionResponse`, `ReflectionStats`
 
 #### Context Providers (`contexts/`)
@@ -99,10 +107,10 @@ TypeScript interfaces for all data models:
 - `task-operations.ts` - Task manipulation functions (moveTask, moveTasks, deleteTasks, setTasksCompleted)
 
 #### Tests (`__tests__/`)
-Comprehensive test coverage (7,093 lines total):
+Comprehensive test coverage:
 - `tasks.test.tsx` (2,341 lines) - Task screen integration tests
 - `task-lists.test.tsx` (686 lines) - List management tests
-- `activities.test.tsx` (810 lines) - Activity CRUD and session tests
+- `activities.test.tsx` (1,070 lines) - Activity types, activities, logs, and session tests (39 tests, 97% coverage)
 - `behaviors.test.tsx` (707 lines) - Behavior and log management tests
 - `reflections.test.tsx` (734 lines) - Reflection Q&A tests
 - `timer-display.test.tsx`, `timer-screen.test.tsx` - Timer component tests
@@ -132,6 +140,8 @@ behavior-{id} → Behavior
 behavior-logs-all → string[] (log IDs)
 behavior-log-{id} → BehaviorLog
 
+activity-types-all → string[] (activity type IDs)
+activity-type-{id} → ActivityType
 activities-all → string[] (activity IDs)
 activity-{id} → Activity
 activity-logs-all → string[] (log IDs)

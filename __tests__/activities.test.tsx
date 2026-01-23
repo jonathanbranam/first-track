@@ -2,8 +2,8 @@ import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useActivities, useActivityLogs, useActivitySession } from '@/hooks/use-activities';
-import { Activity, ActivityLog } from '@/types/activity';
+import { useActivities, useActivityTypes, useActivityLogs, useActivitySession } from '@/hooks/use-activities';
+import { Activity, ActivityType, ActivityLog } from '@/types/activity';
 
 describe('Activity Hooks', () => {
   beforeEach(async () => {
@@ -805,6 +805,335 @@ describe('Activity Hooks', () => {
         expect(pauseInterval?.resumedAt).toBeGreaterThanOrEqual(resumeTime - 10);
         expect(pauseInterval?.resumedAt).toBeLessThanOrEqual(resumeTime + 10);
       });
+    });
+  });
+
+  describe('useActivityTypes', () => {
+    it('should start with empty activity types list', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.activityTypes).toEqual([]);
+      expect(result.current.activeActivityTypes).toEqual([]);
+    });
+
+    it('should create a new activity type', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      let createdType: ActivityType | undefined;
+      await act(async () => {
+        createdType = await result.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+      });
+
+      expect(createdType).toBeDefined();
+      expect(createdType?.name).toBe('Work');
+      expect(createdType?.color).toBe('#4ECDC4');
+      expect(createdType?.active).toBe(true);
+      expect(createdType?.id).toBeDefined();
+      expect(createdType?.createdAt).toBeDefined();
+
+      await waitFor(() => {
+        expect(result.current.activityTypes).toHaveLength(1);
+        expect(result.current.activityTypes[0].name).toBe('Work');
+      });
+    });
+
+    it('should create multiple activity types', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.activityTypes).toHaveLength(1);
+      });
+
+      await act(async () => {
+        await result.current.createActivityType({
+          name: 'Exercise',
+          color: '#98D8C8',
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.activityTypes).toHaveLength(2);
+      });
+
+      await act(async () => {
+        await result.current.createActivityType({
+          name: 'Learning',
+          color: '#F7DC6F',
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.activityTypes).toHaveLength(3);
+        expect(result.current.activityTypes.map((t) => t.name)).toEqual([
+          'Work',
+          'Exercise',
+          'Learning',
+        ]);
+      });
+    });
+
+    it('should update an activity type', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      let typeId: string = '';
+      await act(async () => {
+        const type = await result.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+        typeId = type.id;
+      });
+
+      await act(async () => {
+        await result.current.updateActivityType(typeId, {
+          name: 'Professional',
+          color: '#FF6B6B',
+        });
+      });
+
+      await waitFor(() => {
+        const updatedType = result.current.activityTypes.find((t) => t.id === typeId);
+        expect(updatedType?.name).toBe('Professional');
+        expect(updatedType?.color).toBe('#FF6B6B');
+      });
+    });
+
+    it('should deactivate an activity type', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      let typeId: string = '';
+      await act(async () => {
+        const type = await result.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+        typeId = type.id;
+      });
+
+      await act(async () => {
+        await result.current.deactivateActivityType(typeId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.activeActivityTypes).toHaveLength(0);
+        expect(result.current.inactiveActivityTypes).toHaveLength(1);
+        const deactivated = result.current.inactiveActivityTypes[0];
+        expect(deactivated.active).toBe(false);
+        expect(deactivated.deactivatedAt).toBeDefined();
+      });
+    });
+
+    it('should reactivate an activity type', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      let typeId: string = '';
+      await act(async () => {
+        const type = await result.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+        typeId = type.id;
+      });
+
+      await act(async () => {
+        await result.current.deactivateActivityType(typeId);
+      });
+
+      await act(async () => {
+        await result.current.reactivateActivityType(typeId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.activeActivityTypes).toHaveLength(1);
+        expect(result.current.inactiveActivityTypes).toHaveLength(0);
+        const reactivated = result.current.activeActivityTypes[0];
+        expect(reactivated.active).toBe(true);
+        expect(reactivated.deactivatedAt).toBeUndefined();
+      });
+    });
+
+    it('should delete an activity type', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      let typeId: string = '';
+      await act(async () => {
+        const type = await result.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+        typeId = type.id;
+      });
+
+      await act(async () => {
+        await result.current.deleteActivityType(typeId);
+      });
+
+      await waitFor(() => {
+        expect(result.current.activityTypes).toHaveLength(0);
+      });
+    });
+
+    it('should create default activity types', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.createDefaultActivityTypes();
+      });
+
+      // Give time for async operations to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Manually refresh to load all activity types from storage
+      await act(async () => {
+        await result.current.refresh();
+      });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // Verify that default types were created by checking storage directly
+      const stored = await AsyncStorage.getItem('activity-types-all');
+      expect(stored).not.toBeNull();
+      const typeIds = JSON.parse(stored!);
+      expect(typeIds.length).toBe(6);
+
+      // Should have created 6 default types
+      await waitFor(() => {
+        expect(result.current.activityTypes.length).toBe(6);
+      });
+
+      const names = result.current.activityTypes.map((t) => t.name);
+      expect(names).toContain('Work');
+      expect(names).toContain('Exercise');
+      expect(names).toContain('Learning');
+      expect(names).toContain('Personal');
+      expect(names).toContain('Home');
+      expect(names).toContain('Social');
+
+      // All should be active and have colors
+      expect(result.current.activityTypes.every((t) => t.active)).toBe(true);
+      expect(result.current.activityTypes.every((t) => t.color)).toBe(true);
+    });
+
+    it('should handle multiple simultaneous operations', async () => {
+      const { result } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      let typeIds: string[] = [];
+      await act(async () => {
+        const type1 = await result.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+        typeIds.push(type1.id);
+      });
+
+      await waitFor(() => {
+        expect(result.current.activityTypes).toHaveLength(1);
+      });
+
+      await act(async () => {
+        const type2 = await result.current.createActivityType({
+          name: 'Exercise',
+          color: '#98D8C8',
+        });
+        typeIds.push(type2.id);
+      });
+
+      await waitFor(() => {
+        expect(result.current.activityTypes).toHaveLength(2);
+      });
+
+      await act(async () => {
+        await result.current.updateActivityType(typeIds[0], { name: 'Professional' });
+      });
+
+      await act(async () => {
+        await result.current.deactivateActivityType(typeIds[1]);
+      });
+
+      await waitFor(() => {
+        const type1 = result.current.activityTypes.find((t) => t.id === typeIds[0]);
+        const type2 = result.current.activityTypes.find((t) => t.id === typeIds[1]);
+        expect(type1?.name).toBe('Professional');
+        expect(type1?.active).toBe(true);
+        expect(type2?.active).toBe(false);
+      });
+    });
+
+    it('should persist activity types across hook remounts', async () => {
+      const { result: result1 } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result1.current.loading).toBe(false);
+      });
+
+      await act(async () => {
+        await result1.current.createActivityType({
+          name: 'Work',
+          color: '#4ECDC4',
+        });
+      });
+
+      await waitFor(() => {
+        expect(result1.current.activityTypes).toHaveLength(1);
+      });
+
+      // Unmount and remount
+      const { result: result2 } = renderHook(() => useActivityTypes());
+
+      await waitFor(() => {
+        expect(result2.current.loading).toBe(false);
+      });
+
+      expect(result2.current.activityTypes).toHaveLength(1);
+      expect(result2.current.activityTypes[0].name).toBe('Work');
     });
   });
 });
