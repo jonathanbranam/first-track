@@ -2,8 +2,16 @@ import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useActivities, useActivityTypes, useActivityLogs, useActivitySession } from '@/hooks/use-activities';
-import { Activity, ActivityType, ActivityLog } from '@/types/activity';
+import {
+  useActivities,
+  useActivityTypes,
+  useActivityLogs,
+  useActivitySession,
+  useActivityInstances,
+  getCurrentDayBoundary,
+  isCurrentDay,
+} from '@/hooks/use-activities';
+import { Activity, ActivityType, ActivityLog, ActivityInstance } from '@/types/activity';
 
 describe('Activity Hooks', () => {
   beforeEach(async () => {
@@ -866,6 +874,9 @@ describe('Activity Hooks', () => {
         expect(result.current.activityTypes).toHaveLength(1);
       });
 
+      // Add small delay to ensure storage writes complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       await act(async () => {
         await result.current.createActivityType({
           name: 'Exercise',
@@ -876,6 +887,9 @@ describe('Activity Hooks', () => {
       await waitFor(() => {
         expect(result.current.activityTypes).toHaveLength(2);
       });
+
+      // Add small delay to ensure storage writes complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       await act(async () => {
         await result.current.createActivityType({
@@ -1134,6 +1148,569 @@ describe('Activity Hooks', () => {
 
       expect(result2.current.activityTypes).toHaveLength(1);
       expect(result2.current.activityTypes[0].name).toBe('Work');
+    });
+  });
+
+  describe('useActivityInstances', () => {
+    describe('Basic CRUD Operations', () => {
+      it('should start with empty instances list', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        expect(result.current.instances).toEqual([]);
+        expect(result.current.incompleteInstances).toEqual([]);
+        expect(result.current.completedInstances).toEqual([]);
+      });
+
+      it('should create a new activity instance', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let createdInstance: ActivityInstance | undefined;
+        await act(async () => {
+          createdInstance = await result.current.createInstance({
+            title: 'Review PRs',
+            description: 'Review team pull requests',
+            typeId: 'work-type-id',
+          });
+        });
+
+        expect(createdInstance).toBeDefined();
+        expect(createdInstance?.title).toBe('Review PRs');
+        expect(createdInstance?.description).toBe('Review team pull requests');
+        expect(createdInstance?.typeId).toBe('work-type-id');
+        expect(createdInstance?.completed).toBe(false);
+        expect(createdInstance?.completedAt).toBeUndefined();
+        expect(createdInstance?.id).toBeDefined();
+        expect(createdInstance?.createdAt).toBeDefined();
+        expect(createdInstance?.lastActiveAt).toBeDefined();
+
+        await waitFor(() => {
+          expect(result.current.instances).toHaveLength(1);
+          expect(result.current.incompleteInstances).toHaveLength(1);
+          expect(result.current.completedInstances).toHaveLength(0);
+        });
+      });
+
+      it('should create instance without description', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let createdInstance: ActivityInstance | undefined;
+        await act(async () => {
+          createdInstance = await result.current.createInstance({
+            title: 'Quick task',
+            typeId: 'work-type-id',
+          });
+        });
+
+        expect(createdInstance).toBeDefined();
+        expect(createdInstance?.title).toBe('Quick task');
+        expect(createdInstance?.description).toBeUndefined();
+        expect(createdInstance?.completed).toBe(false);
+      });
+
+      it('should update an activity instance', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Review PRs',
+            typeId: 'work-type-id',
+          });
+          instanceId = instance.id;
+        });
+
+        await act(async () => {
+          await result.current.updateInstance(instanceId, {
+            title: 'Review and Merge PRs',
+            description: 'Updated description',
+          });
+        });
+
+        await waitFor(() => {
+          const updatedInstance = result.current.instances.find((i) => i.id === instanceId);
+          expect(updatedInstance?.title).toBe('Review and Merge PRs');
+          expect(updatedInstance?.description).toBe('Updated description');
+        });
+      });
+
+      it('should delete an activity instance', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Review PRs',
+            typeId: 'work-type-id',
+          });
+          instanceId = instance.id;
+        });
+
+        await waitFor(() => {
+          expect(result.current.instances).toHaveLength(1);
+        });
+
+        await act(async () => {
+          await result.current.deleteInstance(instanceId);
+        });
+
+        await waitFor(() => {
+          expect(result.current.instances).toHaveLength(0);
+        });
+      });
+    });
+
+    describe('Complete/Uncomplete/Restart Operations', () => {
+      it('should mark an instance as completed', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Review PRs',
+            typeId: 'work-type-id',
+          });
+          instanceId = instance.id;
+        });
+
+        await act(async () => {
+          await result.current.completeInstance(instanceId);
+        });
+
+        await waitFor(() => {
+          const completedInstance = result.current.instances.find((i) => i.id === instanceId);
+          expect(completedInstance?.completed).toBe(true);
+          expect(completedInstance?.completedAt).toBeDefined();
+          expect(result.current.completedInstances).toHaveLength(1);
+          expect(result.current.incompleteInstances).toHaveLength(0);
+        });
+      });
+
+      it('should mark an instance as uncompleted', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Review PRs',
+            typeId: 'work-type-id',
+          });
+          instanceId = instance.id;
+        });
+
+        await act(async () => {
+          await result.current.completeInstance(instanceId);
+        });
+
+        await waitFor(() => {
+          expect(result.current.completedInstances).toHaveLength(1);
+        });
+
+        await act(async () => {
+          await result.current.uncompleteInstance(instanceId);
+        });
+
+        await waitFor(() => {
+          const uncompletedInstance = result.current.instances.find((i) => i.id === instanceId);
+          expect(uncompletedInstance?.completed).toBe(false);
+          expect(uncompletedInstance?.completedAt).toBeUndefined();
+          expect(result.current.incompleteInstances).toHaveLength(1);
+          expect(result.current.completedInstances).toHaveLength(0);
+        });
+      });
+
+      it('should restart a completed instance from today', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Review PRs',
+            typeId: 'work-type-id',
+          });
+          instanceId = instance.id;
+        });
+
+        await act(async () => {
+          await result.current.completeInstance(instanceId);
+        });
+
+        await waitFor(() => {
+          expect(result.current.completedInstances).toHaveLength(1);
+        });
+
+        await act(async () => {
+          await result.current.restartInstance(instanceId);
+        });
+
+        await waitFor(() => {
+          const restartedInstance = result.current.instances.find((i) => i.id === instanceId);
+          expect(restartedInstance?.completed).toBe(false);
+          expect(restartedInstance?.completedAt).toBeUndefined();
+          expect(result.current.incompleteInstances).toHaveLength(1);
+        });
+      });
+
+      it('should throw error when restarting non-completed instance', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Review PRs',
+            typeId: 'work-type-id',
+          });
+          instanceId = instance.id;
+        });
+
+        await expect(
+          act(async () => {
+            await result.current.restartInstance(instanceId);
+          })
+        ).rejects.toThrow('Activity instance is not completed');
+      });
+
+      it('should throw error when restarting instance from previous day', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        const yesterday = Date.now() - 24 * 60 * 60 * 1000;
+
+        // Create instance directly in storage with yesterday's completedAt
+        await act(async () => {
+          const instance: ActivityInstance = {
+            id: Date.now().toString(),
+            title: 'Old task',
+            typeId: 'work-type-id',
+            completed: true,
+            completedAt: yesterday,
+            lastActiveAt: yesterday,
+            createdAt: yesterday,
+          };
+          instanceId = instance.id;
+
+          await AsyncStorage.setItem(
+            `activity-instance-${instance.id}`,
+            JSON.stringify(instance)
+          );
+          await AsyncStorage.setItem(
+            'activity-instances-all',
+            JSON.stringify([instance.id])
+          );
+          await result.current.refresh();
+        });
+
+        await waitFor(() => {
+          expect(result.current.instances).toHaveLength(1);
+        });
+
+        await expect(
+          act(async () => {
+            await result.current.restartInstance(instanceId);
+          })
+        ).rejects.toThrow('Cannot restart activity from a previous day');
+      });
+    });
+
+    describe('Touch and LastActiveAt', () => {
+      it('should update lastActiveAt when touching instance', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        let instanceId: string = '';
+        let originalLastActiveAt: number = 0;
+
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Review PRs',
+            typeId: 'work-type-id',
+          });
+          instanceId = instance.id;
+          originalLastActiveAt = instance.lastActiveAt;
+        });
+
+        // Wait a bit to ensure timestamp difference
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        await act(async () => {
+          await result.current.touchInstance(instanceId);
+        });
+
+        await waitFor(() => {
+          const touchedInstance = result.current.instances.find((i) => i.id === instanceId);
+          expect(touchedInstance?.lastActiveAt).toBeGreaterThan(originalLastActiveAt);
+        });
+      });
+    });
+
+    describe('Sorting and Filtering', () => {
+      it('should sort instances by completion status and lastActiveAt', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        // Create instances with delays to ensure different lastActiveAt
+        let ids: string[] = [];
+
+        await act(async () => {
+          const instance1 = await result.current.createInstance({
+            title: 'Task 1',
+            typeId: 'work-type-id',
+          });
+          ids.push(instance1.id);
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        await act(async () => {
+          const instance2 = await result.current.createInstance({
+            title: 'Task 2',
+            typeId: 'work-type-id',
+          });
+          ids.push(instance2.id);
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, 10));
+
+        await act(async () => {
+          const instance3 = await result.current.createInstance({
+            title: 'Task 3',
+            typeId: 'work-type-id',
+          });
+          ids.push(instance3.id);
+        });
+
+        // Complete the first two
+        await act(async () => {
+          await result.current.completeInstance(ids[0]);
+        });
+
+        await act(async () => {
+          await result.current.completeInstance(ids[1]);
+        });
+
+        await waitFor(() => {
+          expect(result.current.instances).toHaveLength(3);
+        });
+
+        // Get sorted instances
+        const sorted = result.current.sortedInstances;
+
+        // Incomplete should come first (Task 3)
+        expect(sorted[0].title).toBe('Task 3');
+        expect(sorted[0].completed).toBe(false);
+
+        // Completed instances should come after, sorted by most recent
+        expect(sorted[1].completed).toBe(true);
+        expect(sorted[2].completed).toBe(true);
+
+        // Task 2 should be before Task 1 (more recent)
+        expect(sorted[1].title).toBe('Task 2');
+        expect(sorted[2].title).toBe('Task 1');
+      });
+
+      it('should filter current day instances correctly', async () => {
+        const { result } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result.current.loading).toBe(false);
+        });
+
+        // Create today's incomplete instance
+        await act(async () => {
+          await result.current.createInstance({
+            title: 'Today incomplete',
+            typeId: 'work-type-id',
+          });
+        });
+
+        // Create today's completed instance
+        let todayCompletedId: string = '';
+        await act(async () => {
+          const instance = await result.current.createInstance({
+            title: 'Today completed',
+            typeId: 'work-type-id',
+          });
+          todayCompletedId = instance.id;
+        });
+
+        await act(async () => {
+          await result.current.completeInstance(todayCompletedId);
+        });
+
+        // Create yesterday's completed instance
+        const yesterday = Date.now() - 24 * 60 * 60 * 1000;
+        await act(async () => {
+          const oldInstance: ActivityInstance = {
+            id: 'old-instance',
+            title: 'Yesterday completed',
+            typeId: 'work-type-id',
+            completed: true,
+            completedAt: yesterday,
+            lastActiveAt: yesterday,
+            createdAt: yesterday,
+          };
+
+          await AsyncStorage.setItem(
+            'activity-instance-old-instance',
+            JSON.stringify(oldInstance)
+          );
+
+          const currentIds = await AsyncStorage.getItem('activity-instances-all');
+          const ids = currentIds ? JSON.parse(currentIds) : [];
+          await AsyncStorage.setItem(
+            'activity-instances-all',
+            JSON.stringify([...ids, 'old-instance'])
+          );
+
+          await result.current.refresh();
+        });
+
+        await waitFor(() => {
+          expect(result.current.instances).toHaveLength(3);
+        });
+
+        // Current day instances should include incomplete + today's completed
+        await waitFor(() => {
+          const currentDay = result.current.currentDayInstances;
+          expect(currentDay).toHaveLength(2);
+          expect(currentDay.some((i) => i.title === 'Today incomplete')).toBe(true);
+          expect(currentDay.some((i) => i.title === 'Today completed')).toBe(true);
+          expect(currentDay.some((i) => i.title === 'Yesterday completed')).toBe(false);
+        });
+      });
+    });
+
+    describe('Persistence', () => {
+      it('should persist instances across hook remounts', async () => {
+        const { result: result1 } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result1.current.loading).toBe(false);
+        });
+
+        await act(async () => {
+          await result1.current.createInstance({
+            title: 'Persistent task',
+            description: 'This should persist',
+            typeId: 'work-type-id',
+          });
+        });
+
+        await waitFor(() => {
+          expect(result1.current.instances).toHaveLength(1);
+        });
+
+        // Unmount and remount
+        const { result: result2 } = renderHook(() => useActivityInstances());
+
+        await waitFor(() => {
+          expect(result2.current.loading).toBe(false);
+        });
+
+        expect(result2.current.instances).toHaveLength(1);
+        expect(result2.current.instances[0].title).toBe('Persistent task');
+        expect(result2.current.instances[0].description).toBe('This should persist');
+      });
+    });
+  });
+
+  describe('Day Boundary Utilities', () => {
+    it('should calculate current day boundary at 4am', () => {
+      const now = new Date('2026-01-23T05:00:00'); // 5am
+      const boundary = new Date('2026-01-23T04:00:00'); // 4am today
+
+      jest.useFakeTimers();
+      jest.setSystemTime(now);
+
+      const result = getCurrentDayBoundary();
+      expect(result).toBe(boundary.getTime());
+
+      jest.useRealTimers();
+    });
+
+    it('should use previous day boundary before 4am', () => {
+      const now = new Date('2026-01-23T03:00:00'); // 3am
+      const boundary = new Date('2026-01-22T04:00:00'); // 4am yesterday
+
+      jest.useFakeTimers();
+      jest.setSystemTime(now);
+
+      const result = getCurrentDayBoundary();
+      expect(result).toBe(boundary.getTime());
+
+      jest.useRealTimers();
+    });
+
+    it('should check if timestamp is from current day', () => {
+      const now = new Date('2026-01-23T10:00:00'); // 10am
+      const todayTimestamp = new Date('2026-01-23T08:00:00').getTime(); // 8am today
+      const yesterdayTimestamp = new Date('2026-01-22T10:00:00').getTime(); // yesterday
+
+      jest.useFakeTimers();
+      jest.setSystemTime(now);
+
+      expect(isCurrentDay(todayTimestamp)).toBe(true);
+      expect(isCurrentDay(yesterdayTimestamp)).toBe(false);
+
+      jest.useRealTimers();
+    });
+
+    it('should handle edge case at exactly 4am', () => {
+      const now = new Date('2026-01-23T04:00:00'); // exactly 4am
+      const boundary = new Date('2026-01-23T04:00:00'); // 4am today
+
+      jest.useFakeTimers();
+      jest.setSystemTime(now);
+
+      const result = getCurrentDayBoundary();
+      expect(result).toBe(boundary.getTime());
+
+      jest.useRealTimers();
     });
   });
 });

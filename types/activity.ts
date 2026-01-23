@@ -17,6 +17,7 @@ export interface ActivityType {
 
 /**
  * Activity represents a trackable activity/project that can be timed
+ * @deprecated Use ActivityInstance instead
  */
 export interface Activity {
   id: string;
@@ -27,6 +28,21 @@ export interface Activity {
   active: boolean; // whether this activity is active or archived
   createdAt: number; // timestamp
   deactivatedAt?: number; // timestamp when deactivated
+}
+
+/**
+ * ActivityInstance represents a specific instance of an activity that can be timed
+ * Each instance belongs to an ActivityType and can be completed/restarted
+ */
+export interface ActivityInstance {
+  id: string;
+  title: string; // free text name for this specific instance (e.g., "Review PRs", "Write documentation")
+  description?: string; // optional detailed description
+  typeId: string; // reference to ActivityType (required)
+  completed: boolean; // whether this instance is completed
+  completedAt?: number; // timestamp when completed
+  lastActiveAt: number; // timestamp of last activity (for sorting)
+  createdAt: number; // timestamp when created
 }
 
 /**
@@ -42,7 +58,7 @@ export interface PauseInterval {
  */
 export interface ActivityLog {
   id: string;
-  activityId: string;
+  activityId: string; // reference to ActivityInstance.id
   startTime: number; // timestamp when activity started
   endTime?: number; // timestamp when activity ended (undefined if still running)
   duration: number; // total duration in milliseconds (excluding paused time)

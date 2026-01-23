@@ -77,11 +77,14 @@ Organized by feature:
 #### Data Layer (`hooks/`)
 Custom hooks for state and data management:
 - `use-storage.ts` - **Core data persistence** - AsyncStorage wrapper with CRUD operations
-- `use-activities.ts` - Activity type and activity management (CRUD, timer session state)
+- `use-activities.ts` - Activity type and activity instance management (CRUD, timer session state)
   - `useActivityTypes()` - Manage activity type categories (Work, Exercise, etc.)
-  - `useActivities()` - Manage individual activity instances
+  - `useActivities()` - [DEPRECATED] Legacy activity management - use useActivityInstances instead
+  - `useActivityInstances()` - Manage individual activity instances with complete/restart lifecycle
   - `useActivityLogs()` - Manage activity session logs
   - `useActivitySession()` - Manage current timer state
+  - `getCurrentDayBoundary()` - Utility for 4am day boundary calculation
+  - `isCurrentDay()` - Check if timestamp is from current day (4am boundary)
 - `use-behaviors.ts` - Behavior and log management (CRUD, stats calculation)
 - `use-reflections.ts` - Reflection questions and responses (CRUD, daily tracking)
 - `use-color-scheme.ts` - Light/dark mode detection (platform-specific)
@@ -93,10 +96,11 @@ TypeScript interfaces for all data models:
 - `task.ts` - `Task` interface (id, description, notes, completed, deletedAt)
 - `task-list.ts` - `TaskList` interface (id, name, emoji, color, listType)
 - `behavior.ts` - `Behavior`, `BehaviorLog`, `BehaviorStats` (type: reps/duration/weight/count)
-- `activity.ts` - `ActivityType`, `Activity`, `ActivityLog`, `ActivitySession`
-  - `ActivityType` - Configurable categories (name, color, active status)
-  - `Activity` - Individual activity instances (references ActivityType via typeId)
-  - `ActivityLog` - Timer session data with pause intervals
+- `activity.ts` - `ActivityType`, `Activity`, `ActivityInstance`, `ActivityLog`, `ActivitySession`
+  - `ActivityType` - Configurable activity categories (name, color, active status)
+  - `Activity` - [DEPRECATED] Legacy activity interface - use ActivityInstance instead
+  - `ActivityInstance` - Individual activity instances with title, description, typeId, completed status, and lastActiveAt
+  - `ActivityLog` - Timer session data with pause intervals (references ActivityInstance)
   - `ActivitySession` - Current timer state
 - `reflection.ts` - `ReflectionQuestion`, `ReflectionResponse`, `ReflectionStats`
 
@@ -142,8 +146,10 @@ behavior-log-{id} → BehaviorLog
 
 activity-types-all → string[] (activity type IDs)
 activity-type-{id} → ActivityType
-activities-all → string[] (activity IDs)
-activity-{id} → Activity
+activities-all → string[] (activity IDs) [DEPRECATED]
+activity-{id} → Activity [DEPRECATED]
+activity-instances-all → string[] (activity instance IDs)
+activity-instance-{id} → ActivityInstance
 activity-logs-all → string[] (log IDs)
 activity-log-{id} → ActivityLog
 activity-session-current → ActivitySession
@@ -159,6 +165,7 @@ reflection-responses-{questionId}-{date} → ReflectionResponse[]
 - Individual entities stored with prefixed IDs
 - Soft deletes via `deletedAt` timestamp (tasks)
 - Daily tracking uses midnight timestamps (reflections)
+- Activity instances use 4am day boundary (days start at 4am, not midnight)
 
 ### Key Patterns
 - **Theming:** Dual theme support (light/dark) with automatic system preference detection. Use `useThemeColor` hook for dynamic colors.
@@ -170,6 +177,7 @@ reflection-responses-{questionId}-{date} → ReflectionResponse[]
 - **Soft Deletes:** Tasks use `deletedAt` timestamp instead of hard delete to preserve data integrity.
 - **ID-Based Architecture:** All entities reference each other by ID strings for flexibility.
 - **Timestamp-Based Dates:** Reflection responses use midnight timestamps for daily tracking.
+- **4am Day Boundary:** Activity instances use 4am as the day boundary (getCurrentDayBoundary() utility). Completed activities only show on the same "day" they were completed, where a day starts at 4am instead of midnight. Use isCurrentDay() to check if a timestamp is from the current day.
 - **Gesture Handling:** Swipeable components for task actions, DraggableFlatList for reordering.
 
 ## Common Workflows
@@ -184,10 +192,14 @@ reflection-responses-{questionId}-{date} → ReflectionResponse[]
 7. Update this file (CLAUDE.md) if architectural patterns change
 
 ### Working with Data
-- **Reading data:** Use appropriate custom hook (e.g., `useBehaviors()`, `useActivities()`)
-- **Writing data:** Hooks provide `add`, `update`, `remove` methods
+- **Reading data:** Use appropriate custom hook (e.g., `useBehaviors()`, `useActivityInstances()`, `useActivityTypes()`)
+- **Writing data:** Hooks provide `create`, `update`, `delete` methods (or `add`/`remove` for older hooks)
 - **Direct storage access:** Only use `useStorage<T>` for new data types
 - **Never use AsyncStorage directly** - always go through hooks
+- **Activity instances:** Use `useActivityInstances()` for activity instance management (not deprecated `useActivities()`)
+  - `currentDayInstances` - filtered list of incomplete + same-day completed instances
+  - `sortedInstances` - sorted by completion status and lastActiveAt
+  - `completeInstance()`, `restartInstance()` - lifecycle operations
 
 ### Adding New Icons
 1. Find SF Symbol name from Apple's SF Symbols app or web resources
