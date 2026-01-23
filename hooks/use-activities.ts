@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, ActivityType, ActivityLog, ActivitySession } from '@/types/activity';
+import { Activity, ActivityInstance, ActivityType, ActivityLog, ActivitySession } from '@/types/activity';
 import { useStorage, getStorageItem, setStorageItem, removeStorageItem } from './use-storage';
 
 const ACTIVITY_TYPES_LIST_KEY = 'all';
@@ -12,6 +12,9 @@ const ACTIVITY_TYPE_LABEL = 'activity-type';
 const ACTIVITIES_LIST_KEY = 'all';
 const ACTIVITIES_LABEL = 'activities';
 const ACTIVITY_LABEL = 'activity';
+const ACTIVITY_INSTANCES_LIST_KEY = 'all';
+const ACTIVITY_INSTANCES_LABEL = 'activity-instances';
+const ACTIVITY_INSTANCE_LABEL = 'activity-instance';
 const ACTIVITY_LOGS_LABEL = 'activity-logs';
 const ACTIVITY_LOG_LABEL = 'activity-log';
 const ACTIVITY_SESSION_LABEL = 'activity-session';
@@ -155,7 +158,42 @@ export function useActivityTypes() {
 }
 
 /**
+ * Utility function to get the current "day" timestamp based on 4am boundary
+ * Days start at 4am, not midnight. So 3:59am is still "yesterday"
+ * and 4:00am is the start of "today"
+ * @returns timestamp of the current day's 4am boundary
+ */
+export function getCurrentDayBoundary(): number {
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  // If current time is before 4am, the "current day" started at 4am yesterday
+  if (currentHour < 4) {
+    const dayBoundary = new Date(now);
+    dayBoundary.setDate(dayBoundary.getDate() - 1);
+    dayBoundary.setHours(4, 0, 0, 0);
+    return dayBoundary.getTime();
+  }
+
+  // Otherwise, the "current day" started at 4am today
+  const dayBoundary = new Date(now);
+  dayBoundary.setHours(4, 0, 0, 0);
+  return dayBoundary.getTime();
+}
+
+/**
+ * Check if a timestamp is from the current "day" (4am boundary)
+ * @param timestamp - timestamp to check
+ * @returns true if the timestamp is from the current day
+ */
+export function isCurrentDay(timestamp: number): boolean {
+  const currentDayBoundary = getCurrentDayBoundary();
+  return timestamp >= currentDayBoundary;
+}
+
+/**
  * Hook for managing the list of all activities
+ * @deprecated Use useActivityInstances instead
  */
 export function useActivities() {
   const { data: activityIds, loading, save: saveActivityIds, refresh } = useStorage<string[]>(
@@ -284,6 +322,195 @@ export function useActivities() {
     deactivateActivity,
     reactivateActivity,
     createDefaultActivities,
+    refresh,
+  };
+}
+
+/**
+ * Hook for managing activity instances
+ */
+export function useActivityInstances() {
+  const { data: instanceIds, loading, save: saveInstanceIds, refresh } = useStorage<string[]>(
+    ACTIVITY_INSTANCES_LABEL,
+    ACTIVITY_INSTANCES_LIST_KEY
+  );
+  const [instances, setInstances] = useState<ActivityInstance[]>([]);
+
+  // Load all instances whenever instanceIds changes
+  useEffect(() => {
+    if (!instanceIds || loading) return;
+
+    async function loadInstances() {
+      const loaded = await Promise.all(
+        instanceIds.map((id) => getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, id))
+      );
+      const validInstances = loaded.filter((instance): instance is ActivityInstance => instance !== null);
+      setInstances(validInstances);
+    }
+
+    loadInstances();
+  }, [instanceIds, loading]);
+
+  /**
+   * Create a new activity instance
+   */
+  const createInstance = useCallback(
+    async (instance: Omit<ActivityInstance, 'id' | 'createdAt' | 'lastActiveAt' | 'completed'>) => {
+      const now = Date.now();
+      const newInstance: ActivityInstance = {
+        ...instance,
+        id: now.toString(),
+        createdAt: now,
+        lastActiveAt: now,
+        completed: false,
+      };
+
+      // Save the instance
+      await setStorageItem(ACTIVITY_INSTANCE_LABEL, newInstance.id, newInstance);
+
+      // Update the instances list - read fresh from storage to avoid stale closure
+      const currentIds = await getStorageItem<string[]>(ACTIVITY_INSTANCES_LABEL, ACTIVITY_INSTANCES_LIST_KEY);
+      const updatedIds = [...(currentIds || []), newInstance.id];
+      await saveInstanceIds(updatedIds);
+
+      setInstances((prev) => [...prev, newInstance]);
+      return newInstance;
+    },
+    [saveInstanceIds]
+  );
+
+  /**
+   * Update an existing activity instance
+   */
+  const updateInstance = useCallback(async (id: string, updates: Partial<ActivityInstance>) => {
+    const existing = await getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, id);
+    if (!existing) throw new Error('Activity instance not found');
+
+    const updated: ActivityInstance = { ...existing, ...updates };
+    await setStorageItem(ACTIVITY_INSTANCE_LABEL, id, updated);
+
+    setInstances((prev) => prev.map((i) => (i.id === id ? updated : i)));
+    return updated;
+  }, []);
+
+  /**
+   * Delete an activity instance
+   */
+  const deleteInstance = useCallback(
+    async (id: string) => {
+      await removeStorageItem(ACTIVITY_INSTANCE_LABEL, id);
+
+      // Read fresh from storage to avoid stale closure
+      const currentIds = await getStorageItem<string[]>(ACTIVITY_INSTANCES_LABEL, ACTIVITY_INSTANCES_LIST_KEY);
+      const updatedIds = (currentIds || []).filter((instanceId) => instanceId !== id);
+      await saveInstanceIds(updatedIds);
+
+      setInstances((prev) => prev.filter((i) => i.id !== id));
+    },
+    [saveInstanceIds]
+  );
+
+  /**
+   * Mark an activity instance as completed
+   */
+  const completeInstance = useCallback(
+    async (id: string) => {
+      return updateInstance(id, { completed: true, completedAt: Date.now() });
+    },
+    [updateInstance]
+  );
+
+  /**
+   * Mark an activity instance as not completed
+   */
+  const uncompleteInstance = useCallback(
+    async (id: string) => {
+      return updateInstance(id, { completed: false, completedAt: undefined });
+    },
+    [updateInstance]
+  );
+
+  /**
+   * Restart a completed activity instance (only if completed today)
+   */
+  const restartInstance = useCallback(
+    async (id: string) => {
+      const existing = await getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, id);
+      if (!existing) throw new Error('Activity instance not found');
+      if (!existing.completed) throw new Error('Activity instance is not completed');
+
+      // Check if completed today (4am boundary)
+      if (existing.completedAt && !isCurrentDay(existing.completedAt)) {
+        throw new Error('Cannot restart activity from a previous day');
+      }
+
+      return updateInstance(id, {
+        completed: false,
+        completedAt: undefined,
+        lastActiveAt: Date.now()
+      });
+    },
+    [updateInstance]
+  );
+
+  /**
+   * Update lastActiveAt timestamp for an instance
+   */
+  const touchInstance = useCallback(
+    async (id: string) => {
+      return updateInstance(id, { lastActiveAt: Date.now() });
+    },
+    [updateInstance]
+  );
+
+  /**
+   * Get instances for the current day (4am boundary)
+   * Returns incomplete instances + completed instances from today
+   */
+  const getCurrentDayInstances = useCallback(() => {
+    return instances.filter((instance) => {
+      // Always show incomplete instances
+      if (!instance.completed) return true;
+
+      // Show completed instances only if completed today
+      if (instance.completedAt && isCurrentDay(instance.completedAt)) return true;
+
+      return false;
+    });
+  }, [instances]);
+
+  /**
+   * Get instances sorted by status and last active time
+   * Incomplete instances first, then by most recent lastActiveAt
+   */
+  const getSortedInstances = useCallback((instancesToSort?: ActivityInstance[]) => {
+    const toSort = instancesToSort || instances;
+    return [...toSort].sort((a, b) => {
+      // Incomplete before completed
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1;
+      }
+      // Most recently active first
+      return b.lastActiveAt - a.lastActiveAt;
+    });
+  }, [instances]);
+
+  return {
+    instances,
+    incompleteInstances: instances.filter((i) => !i.completed),
+    completedInstances: instances.filter((i) => i.completed),
+    currentDayInstances: getCurrentDayInstances(),
+    sortedInstances: getSortedInstances(),
+    loading,
+    createInstance,
+    updateInstance,
+    deleteInstance,
+    completeInstance,
+    uncompleteInstance,
+    restartInstance,
+    touchInstance,
+    getCurrentDayInstances,
+    getSortedInstances,
     refresh,
   };
 }

@@ -412,23 +412,23 @@ This section documents the refinements to activity tracking based on the updated
 ### 11.2 Activity Instance System
 
 #### Data Model Changes
-- [ ] Rename `Activity` to `ActivityInstance` for clarity
-- [ ] Add `title` field (free text, required)
-- [ ] Add `description` field (free text, optional)
-- [ ] Add `typeId` field (references ActivityType)
-- [ ] Add `completed` field (boolean)
-- [ ] Add `completedAt` field (timestamp, optional)
-- [ ] Add `lastActiveAt` field (timestamp for sorting)
-- [ ] Remove `active` and `deactivatedAt` fields (no longer needed)
+- [x] Rename `Activity` to `ActivityInstance` for clarity
+- [x] Add `title` field (free text, required)
+- [x] Add `description` field (free text, optional)
+- [x] Add `typeId` field (references ActivityType)
+- [x] Add `completed` field (boolean)
+- [x] Add `completedAt` field (timestamp, optional)
+- [x] Add `lastActiveAt` field (timestamp for sorting)
+- [x] Remove `active` and `deactivatedAt` fields (no longer needed)
 
 #### Storage Changes
-- [ ] Update storage keys for activity instances vs types
-- [ ] Migrate from `activities-all` to `activity-instances-all`
-- [ ] Update `useActivities` hook to `useActivityInstances`
-- [ ] Implement create instance with type selection
-- [ ] Add complete/uncomplete instance operations
-- [ ] Add restart completed instance operation
-- [ ] Implement "end of day" filtering logic (4am boundary)
+- [x] Update storage keys for activity instances vs types
+- [x] Migrate from `activities-all` to `activity-instances-all`
+- [x] Update `useActivities` hook to `useActivityInstances`
+- [x] Implement create instance with type selection
+- [x] Add complete/uncomplete instance operations
+- [x] Add restart completed instance operation
+- [x] Implement "end of day" filtering logic (4am boundary)
 
 ### 11.3 Timer Screen Redesign
 
