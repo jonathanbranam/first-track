@@ -613,9 +613,22 @@ export function useActivitySession() {
 
   /**
    * Start a new activity session
+   * @param activityId - The activity instance ID to start timing
+   * @param shouldUpdateLastActive - Whether to update the instance's lastActiveAt timestamp (default: true)
    */
   const startActivity = useCallback(
-    async (activityId: string) => {
+    async (activityId: string, shouldUpdateLastActive: boolean = true) => {
+      // Update lastActiveAt timestamp on the instance if requested
+      if (shouldUpdateLastActive) {
+        const instance = await getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, activityId);
+        if (instance) {
+          await setStorageItem(ACTIVITY_INSTANCE_LABEL, activityId, {
+            ...instance,
+            lastActiveAt: Date.now(),
+          });
+        }
+      }
+
       const newLog: ActivityLog = {
         id: Date.now().toString(),
         activityId,
@@ -642,6 +655,15 @@ export function useActivitySession() {
   const pauseActivity = useCallback(async () => {
     if (!session || session.isPaused) return session;
 
+    // Update lastActiveAt timestamp on the instance
+    const instance = await getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, session.currentLog.activityId);
+    if (instance) {
+      await setStorageItem(ACTIVITY_INSTANCE_LABEL, session.currentLog.activityId, {
+        ...instance,
+        lastActiveAt: Date.now(),
+      });
+    }
+
     const updatedLog: ActivityLog = {
       ...session.currentLog,
       pauseIntervals: [
@@ -665,6 +687,15 @@ export function useActivitySession() {
    */
   const resumeActivity = useCallback(async () => {
     if (!session || !session.isPaused) return session;
+
+    // Update lastActiveAt timestamp on the instance
+    const instance = await getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, session.currentLog.activityId);
+    if (instance) {
+      await setStorageItem(ACTIVITY_INSTANCE_LABEL, session.currentLog.activityId, {
+        ...instance,
+        lastActiveAt: Date.now(),
+      });
+    }
 
     const lastPauseIndex = session.currentLog.pauseIntervals.length - 1;
     const updatedPauseIntervals = [...session.currentLog.pauseIntervals];
@@ -846,4 +877,27 @@ export function useActivitySession() {
     switchActivity,
     resumeFromStack,
   };
+}
+
+/**
+ * Calculate accumulated duration for an activity log (useful for paused activities)
+ * @param log - The activity log
+ * @returns The total duration in milliseconds (excluding paused time)
+ */
+export function calculateAccumulatedDuration(log: ActivityLog): number {
+  const now = Date.now();
+  const totalElapsed = (log.endTime || now) - log.startTime;
+
+  // Calculate total paused time
+  let totalPausedTime = 0;
+  for (const interval of log.pauseIntervals) {
+    if (interval.resumedAt) {
+      totalPausedTime += interval.resumedAt - interval.pausedAt;
+    } else {
+      // If still paused, count up to now
+      totalPausedTime += now - interval.pausedAt;
+    }
+  }
+
+  return totalElapsed - totalPausedTime;
 }
