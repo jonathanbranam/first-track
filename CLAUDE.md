@@ -235,6 +235,63 @@ reflection-responses-{questionId}-{date} → ReflectionResponse[]
 - For async operations, use `waitFor()` or `findBy*` queries
 - Test both light and dark theme variants where applicable
 
+#### Mock Patterns
+When mocking hooks, include **ALL exported functions** from the module:
+```typescript
+jest.mock('@/hooks/use-activities', () => ({
+  useActivityInstances: jest.fn(),
+  useActivityTypes: jest.fn(),
+  useActivitySession: jest.fn(),
+  useActivityLogs: jest.fn(),
+  calculateAccumulatedDuration: jest.fn((log) => log?.duration || 0),
+  isCurrentDay: jest.fn(() => true),
+  getCurrentDayBoundary: jest.fn(() => Date.now() - 4 * 60 * 60 * 1000),
+}));
+```
+
+Common mocks needed in most test files:
+```typescript
+jest.mock('@/hooks/use-color-scheme', () => ({
+  useColorScheme: () => 'light',
+}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
+
+jest.mock('expo-router', () => ({
+  useFocusEffect: jest.fn(),
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  }),
+}));
+```
+
+#### Query Best Practices
+- **Multiple elements with same text** - Use `getAllByText` instead of `getByText`:
+  ```typescript
+  const buttons = getAllByText('New Activity');
+  fireEvent.press(buttons[0]);
+  ```
+- **Placeholder text vs display text** - Use correct query type:
+  ```typescript
+  getByPlaceholderText('Activity title (required)')  // for placeholder
+  getByText('Submit')  // for visible text
+  ```
+
+#### Event Handler Safety
+Make event handlers defensive for test environments:
+```typescript
+// Bad - crashes in tests where event may be undefined
+onPress={(e) => e.stopPropagation()}
+
+// Good - works in tests
+onPress={(e) => e?.stopPropagation?.()}
+```
+
 ### Debugging Storage Issues
 1. Check AsyncStorage keys in `__tests__/*.test.tsx` for expected structure
 2. Use `console.log()` in hooks to trace data flow
