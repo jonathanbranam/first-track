@@ -8,7 +8,7 @@ import { ThemedText } from './themed-text';
 
 interface TimerDisplayProps {
   startTime: number;
-  pauseIntervals?: Array<{ pausedAt: number; resumedAt?: number }>;
+  pauseIntervals?: { pausedAt: number; resumedAt?: number }[];
   isPaused: boolean;
   style?: object;
 }
@@ -30,7 +30,7 @@ export function formatDuration(milliseconds: number): string {
  */
 function calculateElapsedTime(
   startTime: number,
-  pauseIntervals: Array<{ pausedAt: number; resumedAt?: number }>,
+  pauseIntervals: { pausedAt: number; resumedAt?: number }[],
   isPaused: boolean
 ): number {
   const now = Date.now();

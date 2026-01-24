@@ -407,9 +407,9 @@ describe('Activity Hooks', () => {
       });
 
       expect(finalLog).toBeDefined();
-      expect(finalLog?.endTime).toBeDefined();
-      expect(finalLog?.duration).toBeGreaterThan(0);
-      expect(finalLog?.duration).toBeLessThanOrEqual(Date.now() - startTime);
+      expect(finalLog!.endTime).toBeDefined();
+      expect(finalLog!.duration).toBeGreaterThan(0);
+      expect(finalLog!.duration).toBeLessThanOrEqual(Date.now() - startTime);
 
       // Session should be cleared
       await waitFor(() => {

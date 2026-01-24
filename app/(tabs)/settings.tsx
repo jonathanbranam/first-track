@@ -142,7 +142,7 @@ export default function SettingsScreen() {
       });
       setShowActivityTypeForm(false);
       setActivityTypeFormData({ name: '', color: COLORS[0] });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to create activity type');
     }
   };
@@ -161,7 +161,7 @@ export default function SettingsScreen() {
       setShowActivityTypeForm(false);
       setEditingActivityType(null);
       setActivityTypeFormData({ name: '', color: COLORS[0] });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update activity type');
     }
   };
@@ -188,7 +188,7 @@ export default function SettingsScreen() {
       } else {
         await reactivateActivityType(activityType.id);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update activity type status');
     }
   };
@@ -226,7 +226,7 @@ export default function SettingsScreen() {
             try {
               await createDefaultActivityTypes();
               Alert.alert('Success', 'Default activity types created!');
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to create default activity types');
             }
           },
@@ -247,11 +247,10 @@ export default function SettingsScreen() {
         name: behaviorFormData.name.trim(),
         type: behaviorFormData.type,
         units: behaviorFormData.units,
-        active: true,
       });
       setShowBehaviorForm(false);
       setBehaviorFormData({ name: '', type: 'reps', units: 'reps' });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to create behavior');
     }
   };
@@ -271,7 +270,7 @@ export default function SettingsScreen() {
       setShowBehaviorForm(false);
       setEditingBehavior(null);
       setBehaviorFormData({ name: '', type: 'reps', units: 'reps' });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update behavior');
     }
   };
@@ -298,7 +297,7 @@ export default function SettingsScreen() {
       } else {
         await reactivateBehavior(behavior.id);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update behavior status');
     }
   };
@@ -337,7 +336,7 @@ export default function SettingsScreen() {
             try {
               await createDefaultBehaviors();
               Alert.alert('Success', 'Default behaviors created!');
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to create default behaviors');
             }
           },
@@ -364,7 +363,7 @@ export default function SettingsScreen() {
       });
       setShowQuestionForm(false);
       setQuestionFormData({ text: '' });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to create reflection question');
     }
   };
@@ -382,7 +381,7 @@ export default function SettingsScreen() {
       setShowQuestionForm(false);
       setEditingQuestion(null);
       setQuestionFormData({ text: '' });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update reflection question');
     }
   };
@@ -409,7 +408,7 @@ export default function SettingsScreen() {
       } else {
         await reactivateQuestion(question.id);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update question status');
     }
   };
@@ -446,7 +445,7 @@ export default function SettingsScreen() {
             try {
               await createDefaultQuestions();
               Alert.alert('Success', 'Default reflection questions created!');
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to create default questions');
             }
           },
@@ -460,7 +459,7 @@ export default function SettingsScreen() {
       await AsyncStorage.clear();
       setShowResetConfirmation(false);
       Alert.alert('Success', 'All data has been reset. Please restart the app.');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to reset data');
     }
   };

@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   View,
-  Text,
   Alert,
   Modal,
 } from 'react-native';
@@ -26,7 +25,8 @@ export default function ReflectionHistoryScreen() {
   const { questions, loading: questionsLoading } = useReflectionQuestions();
   const { responses, loading: responsesLoading, updateResponse, createResponse, deleteResponse } = useReflectionResponses();
 
-  const [selectedDate, setSelectedDate] = useState<number | null>(null);
+  // TODO: Implement date selection for filtering responses
+  // const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [editingResponse, setEditingResponse] = useState<ReflectionResponse | null>(null);
   const [editScore, setEditScore] = useState<number>(0);
   const [showAddModal, setShowAddModal] = useState(false);

@@ -28,7 +28,7 @@ export function useReflectionQuestions() {
 
     async function loadQuestions() {
       const loaded = await Promise.all(
-        questionIds.map((id) => getStorageItem<ReflectionQuestion>(QUESTION_LABEL, id))
+        questionIds!.map((id) => getStorageItem<ReflectionQuestion>(QUESTION_LABEL, id))
       );
       const validQuestions = loaded.filter((question): question is ReflectionQuestion => question !== null);
       setQuestions(validQuestions);
@@ -163,7 +163,7 @@ export function useReflectionResponses(questionId?: string) {
 
     async function loadResponses() {
       const loaded = await Promise.all(
-        allResponseIds.map((id) => getStorageItem<ReflectionResponse>(RESPONSE_LABEL, id))
+        allResponseIds!.map((id) => getStorageItem<ReflectionResponse>(RESPONSE_LABEL, id))
       );
       const validResponses = loaded.filter((response): response is ReflectionResponse => response !== null);
       setResponses(validResponses);
@@ -279,7 +279,7 @@ export function useReflectionResponses(questionId?: string) {
    * Check if a question has been answered for a specific date
    */
   const hasResponseForDate = useCallback(
-    (questionId: string, date: Date) => {
+    (questionId: string, date: Date | number) => {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
       const dateTimestamp = startOfDay.getTime();

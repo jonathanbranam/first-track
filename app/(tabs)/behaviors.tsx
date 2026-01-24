@@ -2,11 +2,10 @@
  * Behavior Tracking screen - for viewing and logging behaviors
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { StyleSheet, View, TouchableOpacity, ScrollView, Text, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { QuickLogFAB } from '@/components/behaviors/quick-log-fab';
 import { BehaviorHistoryModal } from '@/components/behaviors/behavior-history-modal';
@@ -111,7 +110,7 @@ export default function BehaviorsScreen() {
         {dailyTotal > 0 && (
           <View style={[styles.dailyTotal, { backgroundColor: colors.tint + '10' }]}>
             <Text style={[styles.dailyTotalText, { color: colors.tint }]}>
-              Today's Total: {dailyTotal} {behavior.units}
+              Today&apos;s Total: {dailyTotal} {behavior.units}
             </Text>
             {logCount > 1 && (
               <Text style={[styles.logCount, { color: colors.icon }]}>
@@ -123,7 +122,7 @@ export default function BehaviorsScreen() {
 
         {behaviorLogs.length > 0 && (
           <View style={styles.logsSection}>
-            <Text style={[styles.logsSectionTitle, { color: colors.icon }]}>Today's Logs</Text>
+            <Text style={[styles.logsSectionTitle, { color: colors.icon }]}>Today&apos;s Logs</Text>
             {behaviorLogs
               .sort((a, b) => b.timestamp - a.timestamp)
               .map((log) => (
@@ -210,7 +209,7 @@ export default function BehaviorsScreen() {
         <ScrollView style={styles.content}>
           {todayLogs.length > 0 && (
             <View style={[styles.summaryCard, { backgroundColor: colors.tint + '10' }]}>
-              <Text style={[styles.summaryTitle, { color: colors.tint }]}>Today's Summary</Text>
+              <Text style={[styles.summaryTitle, { color: colors.tint }]}>Today&apos;s Summary</Text>
               <Text style={[styles.summaryText, { color: colors.text }]}>
                 {todayLogs.length} {todayLogs.length === 1 ? 'activity' : 'activities'} logged
                 across {Object.keys(logsByBehavior).length}{' '}

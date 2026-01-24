@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { TimerDisplay } from '@/components/timer-display';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { ActivityInstance, ActivityType, ActivityLog, PauseInterval } from '@/types/activity';
+import type { ActivityInstance, ActivityType, ActivityLog } from '@/types/activity';
 import { isCurrentDay } from '@/hooks/use-activities';
 
 interface ActivityInstanceItemProps {

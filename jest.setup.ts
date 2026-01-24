@@ -3,7 +3,7 @@ import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/asy
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
 // Mock Expo import.meta and winter runtime
-global.__ExpoImportMetaRegistry = {
+(global as Record<string, unknown>).__ExpoImportMetaRegistry = {
   register: jest.fn(),
   get: jest.fn(),
 };

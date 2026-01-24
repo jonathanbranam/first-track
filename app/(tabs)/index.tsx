@@ -97,7 +97,7 @@ export default function TasksScreen() {
 
     async function loadTaskLists() {
       const loaded = await Promise.all(
-        taskListIds.map((id) => getStorageItem<TaskList>('tasklist', id))
+        taskListIds!.map((id) => getStorageItem<TaskList>('tasklist', id))
       );
       const validLists = loaded.filter((list): list is TaskList => list !== null);
       setTaskLists(validLists);
@@ -110,6 +110,7 @@ export default function TasksScreen() {
     }
 
     loadTaskLists();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskListIds]);
 
   // Load tasks for selected list
@@ -118,7 +119,7 @@ export default function TasksScreen() {
 
     async function loadTasks() {
       const loadedTasks = await Promise.all(
-        taskIds.map((id) => getStorageItem<Task>(`task-${selectedTaskList.id}`, id))
+        taskIds!.map((id) => getStorageItem<Task>(`task-${selectedTaskList!.id}`, id))
       );
       // Filter out null tasks and deleted tasks
       setTasks(loadedTasks.filter((task): task is Task => task !== null && !task.deletedAt));
@@ -425,7 +426,7 @@ export default function TasksScreen() {
               Daily Reflection
             </ThemedText>
             <ThemedText style={styles.reflectionBannerText}>
-              Complete today's reflection
+              Complete today&apos;s reflection
             </ThemedText>
           </ThemedView>
           <IconSymbol name="chevron.right" size={20} color={colors.tint} />

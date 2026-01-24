@@ -75,7 +75,7 @@ export default function TaskListsScreen() {
 
     async function loadTaskLists() {
       const loaded = await Promise.all(
-        taskListIds.map((id) => getStorageItem<TaskList>('tasklist', id))
+        taskListIds!.map((id) => getStorageItem<TaskList>('tasklist', id))
       );
       setTaskLists(loaded.filter((list): list is TaskList => list !== null));
     }

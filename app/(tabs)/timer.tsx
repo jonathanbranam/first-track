@@ -2,7 +2,7 @@
  * Activity Timer screen - for tracking time spent on activity instances
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { StyleSheet, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -18,7 +18,7 @@ import {
   calculateAccumulatedDuration,
 } from '@/hooks/use-activities';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { ActivityInstance, ActivityLog } from '@/types/activity';
+import type { ActivityInstance } from '@/types/activity';
 
 export default function TimerScreen() {
   const { currentDayInstances, getSortedInstances, createInstance, updateInstance, deleteInstance, completeInstance, restartInstance, refresh: refreshInstances } = useActivityInstances();

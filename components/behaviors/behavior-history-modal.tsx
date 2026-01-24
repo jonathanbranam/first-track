@@ -2,7 +2,7 @@
  * Behavior History Modal - displays historical behavior logs with filtering and analytics
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,7 +18,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useBehaviors, useBehaviorLogs } from '@/hooks/use-behaviors';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Behavior, BehaviorLog } from '@/types/behavior';
+import type { BehaviorLog } from '@/types/behavior';
 
 interface BehaviorHistoryModalProps {
   visible: boolean;

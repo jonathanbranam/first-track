@@ -36,7 +36,7 @@ export function useActivityTypes() {
 
     async function loadActivityTypes() {
       const loaded = await Promise.all(
-        activityTypeIds.map((id) => getStorageItem<ActivityType>(ACTIVITY_TYPE_LABEL, id))
+        activityTypeIds!.map((id) => getStorageItem<ActivityType>(ACTIVITY_TYPE_LABEL, id))
       );
       const validActivityTypes = loaded.filter((type): type is ActivityType => type !== null);
       setActivityTypes(validActivityTypes);
@@ -208,7 +208,7 @@ export function useActivities() {
 
     async function loadActivities() {
       const loaded = await Promise.all(
-        activityIds.map((id) => getStorageItem<Activity>(ACTIVITY_LABEL, id))
+        activityIds!.map((id) => getStorageItem<Activity>(ACTIVITY_LABEL, id))
       );
       const validActivities = loaded.filter((activity): activity is Activity => activity !== null);
       setActivities(validActivities);
@@ -221,7 +221,7 @@ export function useActivities() {
    * Create a new activity
    */
   const createActivity = useCallback(
-    async (activity: Omit<Activity, 'id' | 'createdAt'>) => {
+    async (activity: Omit<Activity, 'id' | 'createdAt' | 'active'>) => {
       const newActivity: Activity = {
         ...activity,
         id: Date.now().toString(),
@@ -342,7 +342,7 @@ export function useActivityInstances() {
 
     async function loadInstances() {
       const loaded = await Promise.all(
-        instanceIds.map((id) => getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, id))
+        instanceIds!.map((id) => getStorageItem<ActivityInstance>(ACTIVITY_INSTANCE_LABEL, id))
       );
       const validInstances = loaded.filter((instance): instance is ActivityInstance => instance !== null);
       setInstances(validInstances);
@@ -531,7 +531,7 @@ export function useActivityLogs(activityId?: string) {
 
     async function loadLogs() {
       const loaded = await Promise.all(
-        allLogIds.map((id) => getStorageItem<ActivityLog>(ACTIVITY_LOG_LABEL, id))
+        allLogIds!.map((id) => getStorageItem<ActivityLog>(ACTIVITY_LOG_LABEL, id))
       );
       const validLogs = loaded.filter((log): log is ActivityLog => log !== null);
       setLogs(validLogs);

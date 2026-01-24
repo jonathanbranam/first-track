@@ -28,7 +28,7 @@ export function useBehaviors() {
 
     async function loadBehaviors() {
       const loaded = await Promise.all(
-        behaviorIds.map((id) => getStorageItem<Behavior>(BEHAVIOR_LABEL, id))
+        behaviorIds!.map((id) => getStorageItem<Behavior>(BEHAVIOR_LABEL, id))
       );
       const validBehaviors = loaded.filter((behavior): behavior is Behavior => behavior !== null);
       setBehaviors(validBehaviors);
@@ -41,7 +41,7 @@ export function useBehaviors() {
    * Create a new behavior
    */
   const createBehavior = useCallback(
-    async (behavior: Omit<Behavior, 'id' | 'createdAt'>) => {
+    async (behavior: Omit<Behavior, 'id' | 'createdAt' | 'active'>) => {
       const newBehavior: Behavior = {
         ...behavior,
         id: Date.now().toString(),
@@ -165,7 +165,7 @@ export function useBehaviorLogs(behaviorId?: string) {
 
     async function loadLogs() {
       const loaded = await Promise.all(
-        allLogIds.map((id) => getStorageItem<BehaviorLog>(BEHAVIOR_LOG_LABEL, id))
+        allLogIds!.map((id) => getStorageItem<BehaviorLog>(BEHAVIOR_LOG_LABEL, id))
       );
       const validLogs = loaded.filter((log): log is BehaviorLog => log !== null);
       setLogs(validLogs);

@@ -16,7 +16,6 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Fonts } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useReflectionQuestions, useReflectionResponses } from '@/hooks/use-reflections';
-import { ReflectionQuestion } from '@/types/reflection';
 
 export default function ReflectScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -212,7 +211,7 @@ export default function ReflectScreen() {
             Reflection Complete!
           </ThemedText>
           <ThemedText style={styles.completedSubtitle}>
-            You've completed today's reflection. Great job!
+            You&apos;ve completed today&apos;s reflection. Great job!
           </ThemedText>
           <TouchableOpacity
             style={[styles.retakeButton, { backgroundColor: colors.tint }]}
