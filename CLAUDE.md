@@ -10,9 +10,15 @@ npm run ios            # Run on iOS simulator
 npm run android        # Run on Android emulator
 npm run web            # Run on web
 npm run lint           # Run ESLint
+npx tsc --noEmit       # TypeScript type checking
 npm test               # Run all tests
 npm test -- --watch    # Run tests in watch mode
 npm test -- tasks.test # Run specific test file
+```
+
+**Important:** After making code changes, always run linting and TypeScript checking to catch errors:
+```bash
+npm run lint && npx tsc --noEmit
 ```
 
 **Note for Claude Web Environment:** Before running tests, you must first run `npm install` to ensure all dependencies (including Jest) are installed in the node_modules directory.
