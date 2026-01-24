@@ -47,6 +47,7 @@ const MAPPING = {
   'calendar': 'calendar-today',
   'magnifyingglass': 'search',
   'xmark.circle.fill': 'cancel',
+  'exclamationmark.triangle.fill': 'warning',
 } as IconMapping;
 
 /**

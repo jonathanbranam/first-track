@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useActivityTypes } from '@/hooks/use-activities';
 import { useBehaviors } from '@/hooks/use-behaviors';
@@ -125,6 +126,8 @@ export default function SettingsScreen() {
   const [questionFormData, setQuestionFormData] = useState<ReflectionQuestionFormData>({
     text: '',
   });
+
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
 
   const handleCreateActivityType = async () => {
     if (!activityTypeFormData.name.trim()) {
@@ -452,6 +455,16 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleResetAllData = async () => {
+    try {
+      await AsyncStorage.clear();
+      setShowResetConfirmation(false);
+      Alert.alert('Success', 'All data has been reset. Please restart the app.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to reset data');
+    }
+  };
+
   const renderActivityType = (activityType: ActivityType) => (
     <View
       key={activityType.id}
@@ -719,6 +732,21 @@ export default function SettingsScreen() {
             </>
           )}
         </View>
+
+        <View style={[styles.section, { borderTopWidth: 1, borderTopColor: colors.border }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Danger Zone</Text>
+          </View>
+          <Text style={[styles.dangerDescription, { color: colors.icon }]}>
+            This action is intended for testing purposes only.
+          </Text>
+          <TouchableOpacity
+            style={styles.dangerButton}
+            onPress={() => setShowResetConfirmation(true)}>
+            <IconSymbol name="trash" size={20} color="#fff" />
+            <Text style={styles.dangerButtonText}>Reset All Data</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <Modal
@@ -926,6 +954,36 @@ export default function SettingsScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      <Modal
+        visible={showResetConfirmation}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowResetConfirmation(false)}>
+        <View style={styles.confirmationOverlay}>
+          <View style={[styles.confirmationModal, { backgroundColor: colors.background }]}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#FF6B6B" />
+            <Text style={[styles.confirmationTitle, { color: colors.text }]}>
+              Reset All Data?
+            </Text>
+            <Text style={[styles.confirmationMessage, { color: colors.icon }]}>
+              This will permanently delete all your data including tasks, task lists, activities, behaviors, and reflections. This action cannot be undone.
+            </Text>
+            <View style={styles.confirmationButtons}>
+              <TouchableOpacity
+                style={[styles.confirmationButton, styles.confirmationCancelButton, { borderColor: colors.border }]}
+                onPress={() => setShowResetConfirmation(false)}>
+                <Text style={[styles.confirmationButtonText, { color: colors.text }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmationButton, styles.confirmationDeleteButton]}
+                onPress={handleResetAllData}>
+                <Text style={[styles.confirmationButtonText, { color: '#fff' }]}>Delete All</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1121,5 +1179,71 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontStyle: 'italic',
+  },
+  dangerDescription: {
+    fontSize: 14,
+    marginBottom: 15,
+  },
+  dangerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC3545',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    gap: 10,
+  },
+  dangerButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmationOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  confirmationModal: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  confirmationTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  confirmationMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  confirmationButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  confirmationButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  confirmationCancelButton: {
+    borderWidth: 1,
+  },
+  confirmationDeleteButton: {
+    backgroundColor: '#DC3545',
+  },
+  confirmationButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
