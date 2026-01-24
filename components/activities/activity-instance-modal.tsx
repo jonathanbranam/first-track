@@ -108,7 +108,7 @@ export function ActivityInstanceModal({
       <Pressable style={styles.modalOverlay} onPress={handleClose}>
         <Pressable
           style={[styles.modalContent, { backgroundColor: colors.background }]}
-          onPress={(e) => e.stopPropagation()}>
+          onPress={(e) => e?.stopPropagation?.()}>
           <ThemedText type="subtitle" style={{ marginBottom: 16 }}>
             {mode === 'create' ? 'New Activity' : 'Edit Activity'}
           </ThemedText>

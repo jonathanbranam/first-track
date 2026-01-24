@@ -15,6 +15,28 @@ jest.mock('expo-router', () => ({
     // Store the callback for manual triggering in tests
     focusCallback = callback;
   }),
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  }),
+}));
+
+jest.mock('@/hooks/use-color-scheme', () => ({
+  useColorScheme: () => 'light',
+}));
+
+jest.mock('@/hooks/use-reflections', () => ({
+  useReflectionQuestions: () => ({
+    activeQuestions: [],
+    questions: [],
+    loading: false,
+  }),
+  useReflectionResponses: () => ({
+    hasResponseForDate: jest.fn(() => false),
+    responses: [],
+    loading: false,
+  }),
 }));
 
 // Helper to simulate screen focus (call this to trigger refresh)

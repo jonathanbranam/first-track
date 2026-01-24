@@ -535,7 +535,8 @@ export default function SettingsScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleDeleteBehavior(behavior)}>
+            onPress={() => handleDeleteBehavior(behavior)}
+            testID={`delete-behavior-${behavior.id}`}>
             <IconSymbol name="trash" size={20} color="#FF6B6B" />
           </TouchableOpacity>
         </View>

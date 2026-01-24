@@ -5,21 +5,45 @@ import SettingsScreen from '@/app/(tabs)/settings';
 
 // Mock the hooks
 jest.mock('@/hooks/use-activities', () => ({
-  useActivities: () => ({
-    activities: [],
-    activeActivities: [],
-    inactiveActivities: [],
+  useActivityTypes: () => ({
+    activityTypes: [],
+    activeActivityTypes: [],
+    inactiveActivityTypes: [],
     loading: false,
-    createActivity: jest.fn(),
-    updateActivity: jest.fn(),
-    deleteActivity: jest.fn(),
-    deactivateActivity: jest.fn(),
-    reactivateActivity: jest.fn(),
-    createDefaultActivities: jest.fn(),
+    createActivityType: jest.fn(),
+    updateActivityType: jest.fn(),
+    deleteActivityType: jest.fn(),
+    deactivateActivityType: jest.fn(),
+    reactivateActivityType: jest.fn(),
+    createDefaultActivityTypes: jest.fn(),
   }),
 }));
 
 jest.mock('@/hooks/use-behaviors');
+
+jest.mock('@/hooks/use-reflections', () => ({
+  useReflectionQuestions: () => ({
+    questions: [],
+    activeQuestions: [],
+    inactiveQuestions: [],
+    loading: false,
+    createQuestion: jest.fn(),
+    updateQuestion: jest.fn(),
+    deleteQuestion: jest.fn(),
+    deactivateQuestion: jest.fn(),
+    reactivateQuestion: jest.fn(),
+    createDefaultQuestions: jest.fn(),
+  }),
+}));
+
+jest.mock('@/hooks/use-color-scheme', () => ({
+  useColorScheme: () => 'light',
+}));
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}));
 
 // Mock Alert
 jest.spyOn(Alert, 'alert');
@@ -227,7 +251,6 @@ describe('SettingsScreen - Behavior Configuration', () => {
         name: 'Pushups',
         type: 'reps',
         units: 'reps',
-        active: true,
       });
     });
   });
@@ -326,12 +349,11 @@ describe('SettingsScreen - Behavior Configuration', () => {
       createDefaultBehaviors: jest.fn(),
     });
 
-    const { getAllByTestId } = render(<SettingsScreen />);
+    const { getByTestId } = render(<SettingsScreen />);
 
-    // Click delete button (trash icon)
-    const trashIcons = getAllByTestId('icon-trash');
-    const behaviorTrashIcon = trashIcons[trashIcons.length - 1]; // Last trash icon is for behavior
-    fireEvent.press(behaviorTrashIcon);
+    // Click delete button
+    const deleteButton = getByTestId('delete-behavior-1');
+    fireEvent.press(deleteButton);
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
